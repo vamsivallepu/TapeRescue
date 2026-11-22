@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Auto commit, push, and update docs on major change",
+      "trigger": "Stop",
+      "description": "At the end of each agent turn, checks whether the turn made a major code change. If so, updates the relevant documentation, then commits and pushes.",
+      "action": {
+        "type": "agent",
+        "prompt": "Before finishing, review the uncommitted changes in this repository (`git status` and `git diff`).\n\n1. Decide whether they are a MAJOR change. Major means any of: a new feature, module, or command; a change to public APIs, CLI flags, config, or data formats; a new or removed dependency; a behavior-changing bug fix; or roughly 50+ changed lines of source code. Typo fixes, formatting, comment-only edits, and small internal refactors are NOT major. If not major, or if there are no changes, or this is not a git repository, do nothing and stop.\n\n2. If major, update the documentation that the change affects: README.md, files under docs/, CHANGELOG.md (add an entry under Unreleased), and any inline docstrings for changed public APIs. Only edit docs that are actually affected; do not create new doc files unless the change has no existing place to be documented.\n\n3. Stage the code and doc changes with `git add` (never stage secrets, .env files, or build artifacts), and commit with a Conventional Commits message (e.g. `feat: ...`, `fix: ...`) summarizing the change.\n\n4. Push to the current branch's upstream with `git push`. Never force push. If there is no upstream, no remote, or the push fails, report it to the user instead of retrying with other options.\n\n5. Tell the user in one or two sentences what was committed and pushed, or why nothing was."
+      }
+    }
+  ]
+}
