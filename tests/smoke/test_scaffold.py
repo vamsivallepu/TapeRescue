@@ -76,6 +76,14 @@ def test_collect_with_no_entries_still_includes_pending(tmp_path: Path):
     assert "# Pending Items" in collector.collect(tmp_path)
 
 
+def test_collect_appends_traceability_after_pending(tmp_path: Path):
+    _write(tmp_path / "verification" / "entries" / "1.md", "## Task 1\n")
+    _write(tmp_path / "verification" / "pending.md", "# Pending Items\n")
+    _write(tmp_path / "verification" / "traceability.md", "# Traceability Example\n")
+    text = collector.collect(tmp_path)
+    assert text.index("## Task 1") < text.index("# Pending Items") < text.index("# Traceability Example")
+
+
 def test_collect_rejects_non_task_entry_name(tmp_path: Path):
     _write(tmp_path / "verification" / "pending.md", "# Pending Items\n")
     _write(tmp_path / "verification" / "entries" / "notes.md", "x\n")

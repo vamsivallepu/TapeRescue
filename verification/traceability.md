@@ -1,0 +1,22 @@
+# Traceability Example
+
+Requirement 20.3 asks for one recorded example linking a requirement, the generated test, a failure found by that test, and the resulting code change. The example below is taken from the task 9.1 entry (`verification/entries/9.1.md`). Nothing here is new evidence; it restates what that entry recorded and points at where the test and the change are now.
+
+## Requirement 8.3: intact payloads are selected independently of upload order
+
+- Requirement: 8.3, "THE Recovery_Engine SHALL select intact payloads independently of upload order." The same test also checks the ordering half of Requirement 10.6 (same Captures in a different order give the same result).
+- Generated test: `tests/engine/test_selection.py::test_input_order_does_not_change_results` (lines 190–206), written in task 9.1. Capture A has blocks 0–3 (block 2 fails its data CRC, block 3 is final) plus a header-invalid re-read of block 1 at sample offset 15,000. Capture B has blocks 0–3 with block 1 failing. The test runs `recover` on all 120 orderings of A's five reads, each with both capture orders, and asserts that every `RecoveryResult` is equal. It also asserts that the header-invalid read is listed under block 1 (`first.blocks[1].reads` offsets `[15_000, 20_000, 20_000]`).
+- Failure found: the first run, `.venv/bin/python -m pytest tests/engine -q`, gave "14 passed, 1 failed: `test_input_order_does_not_change_results`". The entry gives the cause: "A header-invalid read of block 1 lying just before a valid read of block 1 was left unplaced, because placement required the raw block number to lie strictly between neighbours." The pytest assertion output was not recorded verbatim. The entry has only the pass/fail counts, the test name, and this diagnosis.
+- Code change: in `taperescue/engine/__init__.py`, `_placement` (lines 286–328) now accepts the raw block number when it lies between the neighbouring valid block numbers inclusive. When no valid read follows, the upper bound is one past the last valid block, so a corrupted block number cannot inflate the block range. The current code is `upper = next_no if next_no is not None else prev_no + 1` and `if raw_no is not None and max(prev_no, 0) <= raw_no <= upper:` (lines 323–325), and the docstring (lines 295–299) describes the inclusive bound. The entry records the change as "placement bound made inclusive, with the upper bound limited to one past the last valid block when nothing valid follows".
+- After the change: `.venv/bin/python -m pytest tests/engine -q` gave `15 passed in 0.24s`, and the full suite gave `272 passed in 1.67s`.
+- Commit: none of its own. The repository history has one commit for the implementation (`ceea1ea`, "feat: add TapeRescue decoder adapter, recovery engine, CLI, web app and STARMAP fixtures"), which already contains both the test and the fixed `_placement`. The pre-fix code exists only as described in the entry.
+
+## Other recorded test failures that led to code changes
+
+These are also recorded in the task entries. They are listed for reference and are not restated in full.
+
+- Requirement 11.2 (export gate): `tests/engine/test_gate.py::test_block_no_mismatch_is_a_blocker` failed on its first run in task 9.2, because the past-the-final-block scan also reported `(3, "unexpected_final_flag")` for a read already placed in a required block. `taperescue/engine/gate.py` was changed so that the scan skips reads already placed in a required block (`_reads_after`, lines 190–199). See `verification/entries/9.2.md`.
+- Task 12.2: the full suite's first run failed `tests/engine/test_reconstruct.py::test_cap_exceeded_evaluates_nothing`. Importing the function `reconstruct` into `taperescue/engine/__init__.py` shadowed the submodule attribute. The import became `from taperescue.engine import reconstruct as _reconstruct` (lines 39–41). This was a wiring fault, not a requirement violation. See `verification/entries/12.2.md`.
+- Task 2.2: throwaway checks found that a WAV cut mid-byte produced bytes and a CRC that were never recorded, which violates Requirements 2.4 and 2.7. `shared/WavCycleDecoder.cpp` was changed in the decoder patch. The checks were a throwaway script (`/tmp/check_obs.py`) and are not a tracked test, so this case does not meet Requirement 20.3. See `verification/entries/2.2.md`.
+
+No Hypothesis property test has found a counterexample in production code. Tasks 12.3, 12.5, 12.7, 13.2 and 14.1 record no counterexample. In task 14.2 the counterexample was in the test's own helper (`_data_crc_source`), not in the exporter.

@@ -1,0 +1,30 @@
+# Build context for the TapeRescue image. The Dockerfile copies only the paths
+# it needs; this file keeps local build output, caches, and anything that must
+# never reach the image (ROM files, an emulator) out of the context.
+
+# Version control and editor state
+.git
+.gitignore
+
+# Local environments and build output (the image rebuilds these itself)
+.venv
+build
+**/node_modules
+web/dist
+*.egg-info
+**/*.egg-info
+demo-out
+
+# Python and test caches
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.hypothesis
+
+# BBC Micro ROM images and the JSBeeb emulator (Requirement 19.3)
+**/*.rom
+**/*.ROM
+**/*.Rom
+**/jsbeeb
+**/jsbeeb-*
+**/JSBeeb

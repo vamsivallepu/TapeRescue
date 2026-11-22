@@ -365,8 +365,8 @@ Implementation languages: Python 3.12 (`taperescue` package, server, tests with 
     - `vitest --run` with React Testing Library: status label and colour per status, download disabled with blockers, reconstructed-block confirmation, JSBeeb instructions, per-capture errors, one strip per capture plus the merged strip
     - _Requirements: 11.6, 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 18.7_
 
-- [ ] 21. Package the single container
-  - [ ] 21.1 Write the `Dockerfile` and `.dockerignore`
+- [x] 21. Package the single container
+  - [x] 21.1 Write the `Dockerfile` and `.dockerignore`
     - Stages: `decoder` (debian bookworm-slim, g++, cmake, build script on the vendored source), `web` (node 20, `npm ci && npm run build`), runtime (python 3.12-slim, `taperescue` wheel, `ScanTape`, `web/dist`, the bundled fixture WAVs, `uvicorn server.app:app` as a non-root user)
     - Exclude ROM files and the JSBeeb emulator
     - _Requirements: 17.6, 19.3, 19.4_
@@ -375,29 +375,29 @@ Implementation languages: Python 3.12 (`taperescue` package, server, tests with 
     - `tests/smoke/test_container.py`: the image lists no `*.rom` or `jsbeeb` paths; `web/dist/index.html` has no third-party script tags; bundled fixtures are only the project-authored STARMAP files
     - _Requirements: 19.1, 19.3, 19.4_
 
-- [ ] 22. Checkpoint: Milestone 3 exit
+- [x] 22. Checkpoint: Milestone 3 exit
   - Ensure all tests pass, ask the user if questions arise.
   - Run `python scripts/collect_verification.py` and confirm every completed Milestone 3 task has an entry; the deployment URL stays a Pending_Item
   - _Requirements: 22.1, 22.2_
 
 ### Milestone 4 (local parts)
 
-- [ ] 23. Add the hook, notices, README, and final pending items
-  - [ ] 23.1 Create the recovery test hook
+- [x] 23. Add the hook, notices, README, and final pending items
+  - [x] 23.1 Create the recovery test hook
     - `.kiro/hooks/recovery-tests.json`: `PostFileSave` with matcher `taperescue/(decoder_adapter|engine)/.*\.py$`, running `python -m pytest tests/engine tests/decoder_adapter -q`
     - _Requirements: 20.1, 20.2_
 
-  - [ ] 23.2 Write `THIRD_PARTY_NOTICES.md`
+  - [x] 23.2 Write `THIRD_PARTY_NOTICES.md`
     - AtomTapeUtils with license and revision, and every bundled Python and npm dependency with its license
     - _Requirements: 21.2_
 
-  - [ ] 23.3 Write `README.md`
+  - [x] 23.3 Write `README.md`
     - Local commands: build the decoder, generate fixtures, run tests, run `taperescue demo`, run the benchmark, start the web app and the container
     - Judge walkthrough: block 6 failing in both recordings, byte disagreements and the recorded CRC, reconstruction with provenance, `.uef` download for JSBeeb
     - Label STARMAP fixtures as generated; state that real-archive results are claimed only after testing with permission-cleared captures; describe every Pending_Item without evidence as pending
     - _Requirements: 21.3, 21.4, 21.5, 22.3_
 
-  - [ ] 23.4 Finalise the verification pending items and traceability example
+  - [x] 23.4 Finalise the verification pending items and traceability example
     - Update `verification/pending.md` so each external step (clean `.uef` in JSBeeb, recovered `.uef` in JSBeeb, real archival captures, Quadbike if not runnable, deployment URL, YouTube demo) has an evidence placeholder and no claimed result
     - Add one example linking a requirement, the generated test, a failure that test found, and the resulting code change, taken from the existing task entries; if no test has failed yet, record that as a blocker instead of inventing one
     - _Requirements: 20.3, 22.2, 22.3_
@@ -406,7 +406,7 @@ Implementation languages: Python 3.12 (`taperescue` package, server, tests with 
     - `tests/smoke/test_docs.py`: README contains the command and walkthrough sections and the generated-fixture label; root LICENSE, notices, hook file, and `.kiro/specs/tape-rescue/` exist; every Pending_Item without evidence is described as pending in the README
     - _Requirements: 20.1, 20.2, 21.1, 21.2, 21.3, 21.4, 21.5, 22.3_
 
-- [ ] 24. Final checkpoint
+- [x] 24. Final checkpoint
   - Ensure all tests pass, ask the user if questions arise.
   - Run `python scripts/collect_verification.py`; confirm every task has an entry and every external step is listed as a Pending_Item with an evidence placeholder
   - _Requirements: 22.1, 22.2, 22.3_
