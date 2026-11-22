@@ -1,0 +1,74 @@
+/* Block inspector. Local styles only; no remote references (Requirement 19.1). */
+
+.inspector {
+  margin: 1.5rem 0;
+}
+
+.inspector-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+}
+
+.inspector-empty {
+  color: #4a4a4a;
+  margin: 0;
+}
+
+.inspector-decision {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.inspector-decision dt {
+  font-weight: 600;
+}
+
+.inspector-decision dd {
+  margin: 0;
+}
+
+.inspector-status {
+  display: inline-block;
+  padding: 0 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Wide tables scroll on narrow screens. The wrapper scrolls, not the table,
+   because `display: block` on a table can drop its table role for screen readers. */
+.inspector-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0 0 1rem;
+}
+
+.inspector-table {
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.inspector-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 0.25rem;
+}
+
+.inspector-table th,
+.inspector-table td {
+  border: 1px solid #c4c4c4;
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.inspector-table thead th {
+  background: #eeeeee;
+}
+
+.inspector-table tbody th {
+  font-weight: 600;
+}

@@ -1,0 +1,659 @@
+diff --git a/ScanTape/ArgParser.cpp b/ScanTape/ArgParser.cpp
+index 522a9a4..864c172 100644
+--- a/ScanTape/ArgParser.cpp
++++ b/ScanTape/ArgParser.cpp
+@@ -4,6 +4,7 @@
+ #include <iostream>
+ #include <string.h>
+ #include "../shared/Utility.h"
++#include "../shared/ObservationWriter.h"
+ 
+ using namespace std;
+ 
+@@ -38,6 +39,10 @@ void ArgParser::printUsage(const char *name)
+ 	cout << "\tbased on the no of files (<= 31 => .ssd; >31 && <=62 => .dsd). The original extension (if any)\n";
+ 	cout << "\tof the file will be ignored for that reason.\n\n";
+ 	cout << "-c:\n\tOnly output a catalogue of the files found on the tape.\n\n";
++	cout << "-json <file>:\n\tWrite one JSON block observation (schema " << TAPERESCUE_OBS_SCHEMA << ") per detected block\n";
++	cout << "\tto <file>, with raw header and payload bytes as read and the recorded CRCs. Requires -bbm,\n";
++	cout << "\t-capture-id and a WAV input file. No other files are generated.\n\n";
++	cout << "-capture-id <hex>:\n\tCapture identifier (64 lowercase hex digits) written to the -json file.\n\n";
+ 
+ 	cout << "\nADVANCED OPTIONS:\n\n";
+ 	cout << "-lbno:\n\tLimit block no. If enabled, the high byte of each tape block no will be discarded.\n";
+@@ -224,6 +229,23 @@ ArgParser::ArgParser(int argc, const char* argv[])
+ 		else if (strcmp(argv[ac], "-t") == 0) {
+ 			logging.tracing = true;
+ 		}
++		else if (strcmp(argv[ac], "-json") == 0) {
++			if (ac + 1 >= argc) {
++				cerr << "-json requires a file path\n";
++				return;
++			}
++			jsonMode = true;
++			jsonFile = argv[ac + 1];
++			ac++;
++		}
++		else if (strcmp(argv[ac], "-capture-id") == 0) {
++			if (ac + 1 >= argc) {
++				cerr << "-capture-id requires a value\n";
++				return;
++			}
++			captureId = argv[ac + 1];
++			ac++;
++		}
+ 		else {
+ 			cout << "Unknown option " << argv[ac] << "\n";
+ 			printUsage(argv[0]);
+@@ -249,5 +271,29 @@ ArgParser::ArgParser(int argc, const char* argv[])
+ 		return;
+ 	}
+ 
++	// TapeRescue: JSON observation mode checks
++	if (!jsonMode && captureId != "") {
++		cerr << "-capture-id is only valid together with -json\n";
++		return;
++	}
++	if (jsonMode) {
++		if (targetMachine != BBC_MODEL_B) {
++			cerr << "-json requires -bbm\n";
++			return;
++		}
++		if (jsonFile == "") {
++			cerr << "-json requires a non-empty file path\n";
++			return;
++		}
++		if (!ObservationWriter::validCaptureId(captureId)) {
++			cerr << "-json requires -capture-id with 64 lowercase hex digits\n";
++			return;
++		}
++		if ((int)genFiles + (int)genUEF + (int)genWAV + (int)genCSW + (int)genTAP + (int)genSSD > 0 || cat) {
++			cerr << "-json cannot be combined with -g, -uef, -wav, -csw, -tap, -ssd or -c\n";
++			return;
++		}
++	}
++
+ 	mParseSuccess = true;
+ }
+diff --git a/ScanTape/ArgParser.h b/ScanTape/ArgParser.h
+index 80571e8..4b28d01 100644
+--- a/ScanTape/ArgParser.h
++++ b/ScanTape/ArgParser.h
+@@ -32,6 +32,11 @@ public:
+ 
+ 	bool limitBlockNo = false; // If true, the high byte of each tape block no will be discarded
+ 
++	// TapeRescue: JSON block-observation output (-json <file> -capture-id <hex>, requires -bbm)
++	bool jsonMode = false;
++	string jsonFile = "";
++	string captureId = "";
++
+ 	string dstFileName;
+ 
+ 	Logging logging;
+diff --git a/ScanTape/ScanTape.cpp b/ScanTape/ScanTape.cpp
+index dfd71ef..7a4d8b9 100644
+--- a/ScanTape/ScanTape.cpp
++++ b/ScanTape/ScanTape.cpp
+@@ -29,6 +29,7 @@
+ #include "../shared/WavEncoder.h"
+ #include "../shared/DiscCodec.h"
+ #include "../shared/BinCodec.h"
++#include "../shared/ObservationWriter.h"
+ 
+ using namespace std;
+ using namespace std::filesystem;
+@@ -60,6 +61,10 @@ int main(int argc, const char* argv[])
+     bool UEF_file = false;
+     Bytes UEF_data;
+     if (UEF_codec.validUefFile(arg_parser.wavFile)) {
++        if (arg_parser.jsonMode) { // TapeRescue: observations need WAV sample positions
++            cerr << "-json requires a WAV input file\n";
++            return -1;
++        }
+         if (arg_parser.logging.verbose)
+             cout << "UEF file detected - scanning it...\n";
+         UEF_file = true;
+@@ -70,6 +75,10 @@ int main(int argc, const char* argv[])
+     }
+     // Is it a CSW file?
+     else if (CSWCodec::isCSWFile(arg_parser.wavFile)) {
++        if (arg_parser.jsonMode) { // TapeRescue: observations need WAV sample positions
++            cerr << "-json requires a WAV input file\n";
++            return -1;
++        }
+         if (arg_parser.logging.verbose)
+             cout << "CSW file detected - scanning it...\n";
+         CSWCodec CSW_codec = CSWCodec(false, sample_freq, arg_parser.tapeTiming, arg_parser.logging, arg_parser.targetMachine);
+@@ -133,12 +142,20 @@ int main(int argc, const char* argv[])
+     // Create A Block Decoder used to detect and read one block from a tape reader
+     BlockDecoder block_decoder(*tape_reader, arg_parser.logging, arg_parser.targetMachine, arg_parser.limitBlockNo);
+ 
++    // TapeRescue: record one raw observation per detected block for -json
++    ObservationWriter observation_writer(arg_parser.captureId, sample_freq);
++    if (arg_parser.jsonMode)
++        block_decoder.setObservationWriter(&observation_writer);
++
+     // Create a File Decoder used to detect and read a complete Tape File
+     FileDecoder fileDecoder(block_decoder, arg_parser.logging, arg_parser.targetMachine, arg_parser.tapeTiming, arg_parser.cat);
+ 
+     // Create a log file
+     ostream* fout_p = &cout;
+-    if (!arg_parser.cat) {
++    ostream null_log(nullptr); // TapeRescue: -json mode writes no tape.log
++    if (arg_parser.jsonMode)
++        fout_p = &null_log;
++    else if (!arg_parser.cat) {
+ 
+         string fout_name = "tape.log";
+         filesystem::path fout_d = arg_parser.genDir;
+@@ -226,6 +243,18 @@ int main(int argc, const char* argv[])
+     else if (!arg_parser.cat && arg_parser.searchedProgram != "")
+         cout << "Found tape file '" << arg_parser.searchedProgram << "'; output file(s) will be generated!\n";
+ 
++    // TapeRescue: write the block observations; no other output files in -json mode
++    if (arg_parser.jsonMode) {
++        string json_error;
++        if (!observation_writer.write(arg_parser.jsonFile, json_error)) {
++            cerr << "Failed to write JSON observations: " << json_error << "\n";
++            if (samples_p != NULL) delete samples_p;
++            return -1;
++        }
++        if (arg_parser.logging.verbose)
++            cout << observation_writer.size() << " block observation(s) written to '" << arg_parser.jsonFile << "'\n";
++    }
++
+     // Should files be extracted only (i.e., no generation of a disc image)
+     if (selected_file_found && !arg_parser.genSSD) {
+ 
+@@ -234,7 +263,10 @@ int main(int argc, const char* argv[])
+ 
+             TapeFile& tape_file = tape_files[i];
+       
+-            if (!genTapeFile && !arg_parser.cat) {
++            if (arg_parser.jsonMode) {
++                // TapeRescue: observations only
++            }
++            else if (!genTapeFile && !arg_parser.cat) {
+ 
+                 // Creata DATA file
+                 DataCodec DATA_codec = DataCodec(arg_parser.logging);
+@@ -363,7 +395,7 @@ int main(int argc, const char* argv[])
+ 
+ 
+     // Close and delete log file - if applicable
+-    if (fout_p != &cout) {
++    if (fout_p != &cout && fout_p != &null_log) {
+         ((ofstream *) fout_p) -> close();
+         delete fout_p;
+     }
+diff --git a/shared/BlockDecoder.cpp b/shared/BlockDecoder.cpp
+index c3dbee8..211a20f 100644
+--- a/shared/BlockDecoder.cpp
++++ b/shared/BlockDecoder.cpp
+@@ -86,6 +86,22 @@ int BlockDecoder::getMinLeadCarrierCycles(bool firstBlock, BlockTiming blockTimi
+ bool BlockDecoder::readBlock(
+ 	BlockTiming blockTiming, bool firstBlock, FileBlock& readBlock, bool& leadToneDetected, BlockError& readStatus
+ )
++{
++	// TapeRescue: decode the block, then record what was actually read on every
++	// exit path (success, CRC mismatch, truncation, unreadable CRC, missing
++	// trailer tone). This runs before FileDecoder assembles (and pads) blocks.
++	mObs.reset();
++	bool success = decodeBlock(blockTiming, firstBlock, readBlock, leadToneDetected, readStatus);
++	if (mObservationWriter != nullptr && mObs.syncRead) {
++		mObs.payload = readBlock.data; // bytes read so far; never padded
++		mObservationWriter->add(mObs);
++	}
++	return success;
++}
++
++bool BlockDecoder::decodeBlock(
++	BlockTiming blockTiming, bool firstBlock, FileBlock& readBlock, bool& leadToneDetected, BlockError& readStatus
++)
+ {
+ 	// Invalidate block in case readBlock returns prematurely
+ 	readBlock.init();
+@@ -131,6 +147,9 @@ bool BlockDecoder::readBlock(
+ 
+ 	leadToneDetected = true;
+ 
++	// TapeRescue: the reader is now at the start bit of the sync byte
++	mObs.timeS = getTime();
++
+ 
+ 	// Get phaseshift when transitioning from lead tone to start bit.
+ 	readBlock.phaseShift = mReader.getPhaseShift();
+@@ -147,6 +166,7 @@ bool BlockDecoder::readBlock(
+ 			DEBUG_PRINT(getTime(), ERR, "Failed to read header preamble%s\n", "");
+ 		return false;
+ 	}
++	mObs.syncRead = true; // TapeRescue: block detected
+ 	if (mTargetMachine == ACORN_ATOM) // For Atom the premable is included in the CRC
+ 		updateCRC(readBlock, crc, preamble_bytes);
+ 
+@@ -157,7 +177,11 @@ bool BlockDecoder::readBlock(
+ 
+ 	// Read block name
+ 	Bytes name_bytes;
+-	if (!getBlockName(name_bytes)) {
++	bool name_read = getBlockName(name_bytes);
++	// TapeRescue: keep the name bytes read, including a partial name
++	mObs.headerRaw.insert(mObs.headerRaw.end(), name_bytes.begin(), name_bytes.end());
++	mObs.nameLen = (int)name_bytes.size();
++	if (!name_read) {
+ 		if (mDebugInfo.tracing)
+ 			DEBUG_PRINT(getTime(), ERR, "Failed to read header block name%s\n", "");
+ 		return false;
+@@ -167,7 +191,10 @@ bool BlockDecoder::readBlock(
+ 	// Read rest of header (excluding any CRC)
+ 	Bytes hdr_bytes;
+ 	int n_read_bytes; // see how many bytes was successfully read
+-	if (!mReader.readBytes(hdr_bytes, readBlock.tapeHdrSz(), n_read_bytes)) {
++	bool hdr_read = mReader.readBytes(hdr_bytes, readBlock.tapeHdrSz(), n_read_bytes);
++	// TapeRescue: keep the header bytes read, including a partial header
++	mObs.headerRaw.insert(mObs.headerRaw.end(), hdr_bytes.begin(), hdr_bytes.end());
++	if (!hdr_read) {
+ 		if (mDebugInfo.tracing)
+ 			DEBUG_PRINT(getTime(), ERR, "Failed to read header field %s\n", readBlock.tapeField(n_read_bytes).c_str());
+ 		nReadBytes += n_read_bytes;
+@@ -184,6 +211,9 @@ bool BlockDecoder::readBlock(
+ 			DEBUG_PRINT(getTime(), ERR, "Failed to decode header for file '%s'\n", readBlock.name.c_str());
+ 		return false;
+ 	}
++	// TapeRescue: the decoder now tries to read readBlock.size payload bytes
++	mObs.headerDecoded = true;
++	mObs.expectedLen = readBlock.size;
+ 
+ 	if (mDebugInfo.verbose)
+ 		readBlock.logFileBlockHdr();
+@@ -198,6 +228,10 @@ bool BlockDecoder::readBlock(
+ 			return false;
+ 		}
+ 		nReadBytes += 2;
++		// TapeRescue: recorded header CRC and whether it matches (reading continues on a mismatch)
++		mObs.headerCrcRead = true;
++		mObs.headerCrcRecorded = hdr_CRC;
++		mObs.headerCrcMatches = (hdr_CRC == crc);
+ 
+ 		// Check against calculated header CRC
+ 		if (hdr_CRC != crc) {
+@@ -267,6 +301,10 @@ bool BlockDecoder::readBlock(
+ 			return false;
+ 		}
+ 		nReadBytes += 2;
++		// TapeRescue: recorded data CRC and whether it matches the full payload read
++		mObs.dataCrcRead = true;
++		mObs.dataCrcRecorded = data_CRC;
++		mObs.dataCrcMatches = (data_CRC == crc);
+ 	}
+ 	else {
+ 		Byte c;
+diff --git a/shared/BlockDecoder.h b/shared/BlockDecoder.h
+index 0946fb8..7f8ee9b 100644
+--- a/shared/BlockDecoder.h
++++ b/shared/BlockDecoder.h
+@@ -12,6 +12,7 @@
+ #include "CycleDecoder.h"
+ #include "FileBlock.h"
+ #include "WavTapeReader.h"
++#include "ObservationWriter.h"
+ 
+ 
+ 
+@@ -49,6 +50,8 @@ protected:
+ 	TargetMachine mTargetMachine = ACORN_ATOM;
+ 
+ 	bool mLimitBlockNo = false;
++	ObservationWriter* mObservationWriter = nullptr; // TapeRescue: JSON observation output (optional)
++	BlockObservation mObs; // TapeRescue: what the current readBlock call has read so far
+ 
+ public:
+ 
+@@ -59,6 +62,10 @@ public:
+ 
+ 	bool readBlock(BlockTiming blockTiming, bool firstBlock, FileBlock& readBlock, bool& leadToneDetected, BlockError &readStatus);
+ 
++	// TapeRescue: record one observation per detected block in observationWriter
++	// (nullptr disables recording).
++	void setObservationWriter(ObservationWriter* observationWriter) { mObservationWriter = observationWriter; }
++
+ 	// Get tape time
+ 	double getTime() { return mReader.getTime(); }
+ 
+@@ -82,6 +89,10 @@ protected:
+ 	// Get block name
+ 	bool getBlockName(Bytes& name);
+ 
++	// TapeRescue: the upstream readBlock body. readBlock wraps it so that an
++	// observation is recorded on every exit path once a block has been detected.
++	bool decodeBlock(BlockTiming blockTiming, bool firstBlock, FileBlock& readBlock, bool& leadToneDetected, BlockError& readStatus);
++
+ 	static int getMinLeadCarrierCycles(bool firstBlock, BlockTiming blockTiming, TargetMachine targetMachine, double carrierFreq);
+ 
+ };
+diff --git a/shared/CMakeLists.txt b/shared/CMakeLists.txt
+index d3a406d..285265c 100644
+--- a/shared/CMakeLists.txt
++++ b/shared/CMakeLists.txt
+@@ -8,6 +8,7 @@ add_library(
+ 	"CSWCycleDecoder.cpp"
+ 	"CycleDecoder.cpp"
+ 	"FileDecoder.cpp"
++	"ObservationWriter.cpp"
+ 	"LevelDecoder.cpp"
+ 	"UEFTapeReader.cpp"
+ 	"WavCycleDecoder.cpp"
+@@ -39,7 +40,7 @@ install(TARGETS ${installable_libs} DESTINATION lib)
+ install(
+ 	FILES AtomBasicCodec.h AtomBlockTypes.h BBMBlockTypes.h BinCodec.h BlockDecoder.h
+ 	CommonTypes.h Compress.h CSWCodec.h CSWCycleDecoder.h CycleDecoder.h DataCodec.h DiscCodec.h
+-	FileBlock.h FileDecoder.h LevelDecoder.h Logging.h PcmFile.h TAPCodec.h
++	FileBlock.h FileDecoder.h LevelDecoder.h Logging.h ObservationWriter.h PcmFile.h TAPCodec.h
+ 	TapeProperties.h TapeReader.h UEFCodec.h UEFTapeReader.h Utility.h
+ 	WavCycleDecoder.h WavEncoder.h WaveSampleTypes.h WavTapeReader.h zpipe.h
+ 	DESTINATION include/shared
+diff --git a/shared/ObservationWriter.cpp b/shared/ObservationWriter.cpp
+new file mode 100644
+index 0000000..6b95be0
+--- /dev/null
++++ b/shared/ObservationWriter.cpp
+@@ -0,0 +1,192 @@
++#include "ObservationWriter.h"
++#include "BBMBlockTypes.h"
++#include <cmath>
++#include <cstdio>
++#include <filesystem>
++#include <fstream>
++#include <sstream>
++#include <system_error>
++
++//
++// Hand-written JSON emitter for schema "taperescue.observations/1".
++//
++// Per block:
++//   sample_offset  sample index of the start bit of the 0x2a sync byte
++//   time_s         the same position in seconds
++//   header_raw     filename (with its 0x00 terminator) through the next-file
++//                  address, as read; excludes the sync byte and the header CRC
++//   header         parsed fields, or null unless the header CRC is valid
++//   header_crc     {"outcome": "valid"|"invalid", "recorded": n} or {"outcome": "unreadable"}
++//   payload        payload bytes as read (hex), never zero-padded
++//   expected_len   payload length the decoder tried to read (0 if the header
++//                  could not be read and decoded)
++//   actual_len     number of payload bytes read
++//   data_crc       as header_crc, or null for a block with no payload
++//                  (the BBC format has no data CRC for an empty block)
++//
++
++ObservationWriter::ObservationWriter(const std::string& captureId, int sampleRate) :
++	mCaptureId(captureId), mSampleRate(sampleRate)
++{
++}
++
++bool ObservationWriter::validCaptureId(const std::string& id)
++{
++	if (id.size() != 64)
++		return false;
++	for (char c : id) {
++		if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
++			return false;
++	}
++	return true;
++}
++
++long long ObservationWriter::sampleOffset(const BlockObservation& obs) const
++{
++	return std::llround(obs.timeS * mSampleRate);
++}
++
++void ObservationWriter::add(const BlockObservation& obs)
++{
++	if (!obs.syncRead)
++		return;
++	mBlocks[sampleOffset(obs)] = obs;
++}
++
++std::string ObservationWriter::hex(const Bytes& bytes)
++{
++	static const char digits[] = "0123456789abcdef";
++	std::string s;
++	s.reserve(bytes.size() * 2);
++	for (Byte b : bytes) {
++		s += digits[b >> 4];
++		s += digits[b & 0xf];
++	}
++	return s;
++}
++
++// JSON string literal for raw bytes; bytes outside printable ASCII are
++// written as \u00XX (that is, the bytes are read as Latin-1).
++std::string ObservationWriter::jsonString(const Bytes& bytes)
++{
++	std::string s = "\"";
++	for (Byte b : bytes) {
++		if (b == '"' || b == '\\') {
++			s += '\\';
++			s += (char)b;
++		}
++		else if (b >= 0x20 && b < 0x7f)
++			s += (char)b;
++		else {
++			char buf[8];
++			std::snprintf(buf, sizeof(buf), "\\u%04x", (unsigned)b);
++			s += buf;
++		}
++	}
++	s += "\"";
++	return s;
++}
++
++uint32_t ObservationWriter::le(const Bytes& bytes, size_t pos, int n)
++{
++	uint32_t v = 0;
++	for (int i = n - 1; i >= 0; i--)
++		v = (v << 8) | bytes[pos + i];
++	return v;
++}
++
++std::string ObservationWriter::crcJson(bool read, Word recorded, bool matches)
++{
++	if (!read)
++		return "{\"outcome\": \"unreadable\"}";
++	std::ostringstream s;
++	s << "{\"outcome\": \"" << (matches ? "valid" : "invalid") << "\", \"recorded\": " << (unsigned)recorded << "}";
++	return s.str();
++}
++
++std::string ObservationWriter::toJson() const
++{
++	std::ostringstream s;
++	s << "{\n";
++	s << "  \"schema\": \"" << TAPERESCUE_OBS_SCHEMA << "\",\n";
++	s << "  \"capture_id\": \"" << mCaptureId << "\",\n";
++	s << "  \"decoder\": {\"name\": \"AtomTapeUtils ScanTape\", \"revision\": \"" << TAPERESCUE_ATU_REVISION
++		<< "\", \"mode\": \"bbm\"},\n";
++	s << "  \"blocks\": [";
++	bool first = true;
++	for (const auto& entry : mBlocks) {
++		const BlockObservation& obs = entry.second;
++		s << (first ? "\n" : ",\n");
++		first = false;
++
++		char time_buf[32];
++		std::snprintf(time_buf, sizeof(time_buf), "%.6f", obs.timeS);
++
++		s << "    {";
++		s << "\"sample_offset\": " << entry.first;
++		s << ", \"time_s\": " << time_buf;
++		s << ", \"header_raw\": \"" << hex(obs.headerRaw) << "\"";
++
++		// Parsed fields only when the header CRC is valid (which implies the
++		// complete header was read).
++		size_t hdr_pos = (size_t)obs.nameLen;
++		bool header_valid = obs.headerDecoded && obs.headerCrcRead && obs.headerCrcMatches
++			&& obs.headerRaw.size() >= hdr_pos + BBM_TAPE_HDR_SZ;
++		if (header_valid) {
++			Bytes name(obs.headerRaw.begin(), obs.headerRaw.begin() + hdr_pos);
++			if (!name.empty() && name.back() == 0x00)
++				name.pop_back();
++			s << ", \"header\": {\"filename\": " << jsonString(name)
++				<< ", \"load_addr\": " << le(obs.headerRaw, hdr_pos + BBM_TAPE_BLOCK_LOAD_ADR, 4)
++				<< ", \"exec_addr\": " << le(obs.headerRaw, hdr_pos + BBM_TAPE_BLOCK_EXEC_ADR, 4)
++				<< ", \"block_no\": " << le(obs.headerRaw, hdr_pos + BBM_TAPE_BLOCK_NO, 2)
++				<< ", \"block_len\": " << le(obs.headerRaw, hdr_pos + BBM_TAPE_BLOCK_LEN, 2)
++				<< ", \"flags\": " << le(obs.headerRaw, hdr_pos + BBM_TAPE_BLOCK_FLAGS, 1)
++				<< ", \"next_addr\": " << le(obs.headerRaw, hdr_pos + BBM_TAPE_BLOCK_NEXT_ADR, 4)
++				<< "}";
++		}
++		else
++			s << ", \"header\": null";
++
++		s << ", \"header_crc\": " << crcJson(obs.headerCrcRead, obs.headerCrcRecorded, obs.headerCrcMatches);
++		s << ", \"payload\": \"" << hex(obs.payload) << "\"";
++		s << ", \"expected_len\": " << obs.expectedLen;
++		s << ", \"actual_len\": " << obs.payload.size();
++		if (obs.headerDecoded && obs.expectedLen == 0)
++			s << ", \"data_crc\": null";
++		else
++			s << ", \"data_crc\": " << crcJson(obs.dataCrcRead, obs.dataCrcRecorded, obs.dataCrcMatches);
++		s << "}";
++	}
++	s << (first ? "]\n" : "\n  ]\n");
++	s << "}\n";
++	return s.str();
++}
++
++bool ObservationWriter::write(const std::string& path, std::string& error) const
++{
++	std::string tmp_path = path + ".tmp";
++	{
++		std::ofstream out(tmp_path, std::ios::binary | std::ios::trunc);
++		if (!out) {
++			error = "cannot open '" + tmp_path + "' for writing";
++			return false;
++		}
++		out << toJson();
++		out.close();
++		if (!out) {
++			error = "failed to write '" + tmp_path + "'";
++			std::error_code ec;
++			std::filesystem::remove(tmp_path, ec);
++			return false;
++		}
++	}
++	std::error_code ec;
++	std::filesystem::rename(tmp_path, path, ec);
++	if (ec) {
++		error = "cannot rename '" + tmp_path + "' to '" + path + "': " + ec.message();
++		std::filesystem::remove(tmp_path, ec);
++		return false;
++	}
++	return true;
++}
+diff --git a/shared/ObservationWriter.h b/shared/ObservationWriter.h
+new file mode 100644
+index 0000000..ffda769
+--- /dev/null
++++ b/shared/ObservationWriter.h
+@@ -0,0 +1,73 @@
++#pragma once
++#ifndef OBSERVATION_WRITER_H
++#define OBSERVATION_WRITER_H
++
++//
++// TapeRescue JSON block-observation output (schema "taperescue.observations/1").
++//
++// BlockDecoder records what it actually read for each detected block (raw header
++// bytes, raw payload bytes, recorded CRCs and their outcomes) before FileDecoder
++// assembles files, so payloads are never zero-padded.
++//
++// Added by the TapeRescue patch atomtapeutils-json-observations.patch.
++//
++
++#include <cstdint>
++#include <map>
++#include <string>
++#include "CommonTypes.h"
++
++#define TAPERESCUE_OBS_SCHEMA "taperescue.observations/1"
++#define TAPERESCUE_ATU_REVISION "98d1a8d1bed00aa22f1d72e3d5e91a254a69ec64"
++
++// Everything BlockDecoder::readBlock read for one block.
++class BlockObservation {
++public:
++	bool syncRead = false;          // 0x2a sync byte read => a block was detected
++	double timeS = 0.0;             // tape time of the sync byte's start bit
++	Bytes headerRaw;                // filename (with terminator) .. next-file address, as read
++	int nameLen = 0;                // number of filename bytes read, terminator included
++	bool headerDecoded = false;     // all header bytes read and decoded
++	int expectedLen = 0;            // payload length the decoder tried to read
++	bool headerCrcRead = false;
++	Word headerCrcRecorded = 0;
++	bool headerCrcMatches = false;
++	bool dataCrcRead = false;
++	Word dataCrcRecorded = 0;
++	bool dataCrcMatches = false;
++	Bytes payload;                  // payload bytes as read, never padded
++
++	void reset() { *this = BlockObservation(); }
++};
++
++class ObservationWriter {
++public:
++	ObservationWriter(const std::string& captureId, int sampleRate);
++
++	// Record one observation. A block re-read after a FileDecoder rollback starts
++	// at the same sample, so an observation with an already recorded sample
++	// offset replaces the earlier one.
++	void add(const BlockObservation& obs);
++
++	size_t size() const { return mBlocks.size(); }
++
++	std::string toJson() const;
++
++	// Write the JSON document to path (via a temporary file and rename).
++	bool write(const std::string& path, std::string& error) const;
++
++	static bool validCaptureId(const std::string& id);
++
++private:
++	std::string mCaptureId;
++	int mSampleRate;
++	std::map<long long, BlockObservation> mBlocks; // keyed and ordered by sample offset
++
++	long long sampleOffset(const BlockObservation& obs) const;
++	static std::string hex(const Bytes& bytes);
++	static std::string jsonString(const Bytes& bytes);
++	static uint32_t le(const Bytes& bytes, size_t pos, int n);
++	static std::string crcJson(bool read, Word recorded, bool matches);
++};
++
++#endif
+diff --git a/shared/WavCycleDecoder.cpp b/shared/WavCycleDecoder.cpp
+index d5aa3db..4c71543 100644
+--- a/shared/WavCycleDecoder.cpp
++++ b/shared/WavCycleDecoder.cpp
+@@ -122,7 +122,8 @@ int WavCycleDecoder::countHalfCycles(
+ 	bool first_half_cycle = true;
+ 	const int min_first_half_cycle_samples = this->mCT.mMinNSamplesF2HalfCycle / 2;
+ 
+-	for (int n = 0; n < nSamples && !mLevelDecoder.endOfSamples(); n++) {
++	int n = 0; // TapeRescue: kept outside the loop to detect a bit cut off by the end of the samples
++	for (; n < nSamples && !mLevelDecoder.endOfSamples(); n++) {
+ 
+ 		bool transition;
+ 		if (!getNextSample(transition)) // can fail for too long level duration or end of of samples
+@@ -161,6 +162,12 @@ int WavCycleDecoder::countHalfCycles(
+ 		}
+ 	}
+ 
++	// TapeRescue: if the samples ended before the full bit duration, the bit was
++	// not read. Without this, the missing bits of a byte cut off by the end of
++	// the capture decode as '1' and a byte that was never recorded is returned.
++	if (n < nSamples)
++		return false;
++
+ 	return true;
+ }
+ 

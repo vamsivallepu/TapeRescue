@@ -1,0 +1,59 @@
+/* Capture and merged strips. Cell colours are set per status from status.ts. */
+.strip {
+  margin: 1rem 0;
+}
+.strip-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+.strip-subtitle {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: #4a4a4a;
+  margin-left: 0.5rem;
+}
+.strip-cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.strip-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 6.5rem;
+  min-height: 3.25rem;
+  padding: 0.25rem 0.5rem;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.strip-cell-no {
+  font-weight: 700;
+  font-size: 1rem;
+}
+.strip-cell-label {
+  white-space: nowrap;
+}
+/* Selection: a dark ring outside the cell, plus aria-pressed for assistive tech. */
+.strip-cell--selected {
+  border-color: #fafafa;
+  outline: 3px solid #1a1a1a;
+  outline-offset: 0;
+}
+.strip-cell:focus-visible {
+  outline: 3px solid #1a1a1a;
+  outline-offset: 2px;
+}
+.strip--merged .strip-cell {
+  min-height: 3.75rem;
+}

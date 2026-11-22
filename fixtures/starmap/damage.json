@@ -1,0 +1,54 @@
+{
+  "a": [
+    {
+      "bit": 2,
+      "damaged": 101,
+      "mask": 4,
+      "offset": 17,
+      "original": 97
+    },
+    {
+      "bit": 5,
+      "damaged": 20,
+      "mask": 32,
+      "offset": 143,
+      "original": 52
+    }
+  ],
+  "b": [
+    {
+      "bit": 0,
+      "damaged": 225,
+      "mask": 1,
+      "offset": 64,
+      "original": 224
+    },
+    {
+      "bit": 6,
+      "damaged": 41,
+      "mask": 64,
+      "offset": 201,
+      "original": 105
+    }
+  ],
+  "block_no": 6,
+  "candidate_check": {
+    "candidate_count": 16,
+    "match_count": 1
+  },
+  "damaged_data_crc": {
+    "a": 50936,
+    "b": 26293
+  },
+  "data_crc": 35417,
+  "plan": {
+    "fallback_index": null,
+    "fallback_seed": 22343,
+    "rejected": [],
+    "source": "planned"
+  },
+  "wav_sha256": {
+    "damaged_a.wav": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+    "damaged_b.wav": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+  }
+}

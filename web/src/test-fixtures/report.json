@@ -1,0 +1,445 @@
+{
+  "algorithm_version": "taperescue-merge/1.0.0",
+  "anchors": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    7
+  ],
+  "blocks": [
+    {
+      "block_no": 0,
+      "conflict": null,
+      "label": "Data CRC verified in at least one capture",
+      "payload_sha256": "0c76daf3c7b9493d618c2d0fdf50f0022bf25ae331063669b5aaaaef00a31a44",
+      "reads": [
+        {
+          "actual_len": 256,
+          "capture_id": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "0c76daf3c7b9493d618c2d0fdf50f0022bf25ae331063669b5aaaaef00a31a44",
+          "payload_state": "complete",
+          "recorded_data_crc": 27331,
+          "sample_offset": 247402
+        },
+        {
+          "actual_len": 256,
+          "capture_id": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "0c76daf3c7b9493d618c2d0fdf50f0022bf25ae331063669b5aaaaef00a31a44",
+          "payload_state": "complete",
+          "recorded_data_crc": 27331,
+          "sample_offset": 247402
+        }
+      ],
+      "reason": null,
+      "reason_message": null,
+      "reconstruction": {
+        "attempted": false,
+        "candidate_count": null,
+        "choices": [],
+        "evaluated_count": null,
+        "match_count": null
+      },
+      "recorded_data_crc": 27331,
+      "status": "Intact",
+      "supporting_capture_ids": [
+        "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+        "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+      ]
+    },
+    {
+      "block_no": 1,
+      "conflict": null,
+      "label": "Data CRC verified in at least one capture",
+      "payload_sha256": "73238b94eb934f6e4aeada61d9faa5425641ea3deee7a6a82f7a31b39ff4d1eb",
+      "reads": [
+        {
+          "actual_len": 256,
+          "capture_id": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "73238b94eb934f6e4aeada61d9faa5425641ea3deee7a6a82f7a31b39ff4d1eb",
+          "payload_state": "complete",
+          "recorded_data_crc": 20048,
+          "sample_offset": 392197
+        },
+        {
+          "actual_len": 256,
+          "capture_id": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "73238b94eb934f6e4aeada61d9faa5425641ea3deee7a6a82f7a31b39ff4d1eb",
+          "payload_state": "complete",
+          "recorded_data_crc": 20048,
+          "sample_offset": 392197
+        }
+      ],
+      "reason": null,
+      "reason_message": null,
+      "reconstruction": {
+        "attempted": false,
+        "candidate_count": null,
+        "choices": [],
+        "evaluated_count": null,
+        "match_count": null
+      },
+      "recorded_data_crc": 20048,
+      "status": "Intact",
+      "supporting_capture_ids": [
+        "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+        "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+      ]
+    },
+    {
+      "block_no": 2,
+      "conflict": null,
+      "label": "Data CRC verified in at least one capture",
+      "payload_sha256": "68fe561df5afbe1cc371ad04916d7fc96669d659116708fbbc93c3e4205a213c",
+      "reads": [
+        {
+          "actual_len": 256,
+          "capture_id": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "68fe561df5afbe1cc371ad04916d7fc96669d659116708fbbc93c3e4205a213c",
+          "payload_state": "complete",
+          "recorded_data_crc": 4934,
+          "sample_offset": 536992
+        },
+        {
+          "actual_len": 256,
+          "capture_id": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "68fe561df5afbe1cc371ad04916d7fc96669d659116708fbbc93c3e4205a213c",
+          "payload_state": "complete",
+          "recorded_data_crc": 4934,
+          "sample_offset": 536992
+        }
+      ],
+      "reason": null,
+      "reason_message": null,
+      "reconstruction": {
+        "attempted": false,
+        "candidate_count": null,
+        "choices": [],
+        "evaluated_count": null,
+        "match_count": null
+      },
+      "recorded_data_crc": 4934,
+      "status": "Intact",
+      "supporting_capture_ids": [
+        "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+        "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+      ]
+    },
+    {
+      "block_no": 3,
+      "conflict": null,
+      "label": "Data CRC verified in at least one capture",
+      "payload_sha256": "ca48266ffaaccc55678f96d5b55729d732beb017ca4ef00c00839d194754eca1",
+      "reads": [
+        {
+          "actual_len": 256,
+          "capture_id": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "ca48266ffaaccc55678f96d5b55729d732beb017ca4ef00c00839d194754eca1",
+          "payload_state": "complete",
+          "recorded_data_crc": 39506,
+          "sample_offset": 681787
+        },
+        {
+          "actual_len": 256,
+          "capture_id": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "ca48266ffaaccc55678f96d5b55729d732beb017ca4ef00c00839d194754eca1",
+          "payload_state": "complete",
+          "recorded_data_crc": 39506,
+          "sample_offset": 681787
+        }
+      ],
+      "reason": null,
+      "reason_message": null,
+      "reconstruction": {
+        "attempted": false,
+        "candidate_count": null,
+        "choices": [],
+        "evaluated_count": null,
+        "match_count": null
+      },
+      "recorded_data_crc": 39506,
+      "status": "Intact",
+      "supporting_capture_ids": [
+        "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+        "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+      ]
+    },
+    {
+      "block_no": 4,
+      "conflict": null,
+      "label": "Data CRC verified in at least one capture",
+      "payload_sha256": "af9baec2474b18fc66fd90c2be108dd6e2a6771e3b7be4b95110729adefb3eaa",
+      "reads": [
+        {
+          "actual_len": 256,
+          "capture_id": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "af9baec2474b18fc66fd90c2be108dd6e2a6771e3b7be4b95110729adefb3eaa",
+          "payload_state": "complete",
+          "recorded_data_crc": 9147,
+          "sample_offset": 826582
+        },
+        {
+          "actual_len": 256,
+          "capture_id": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "af9baec2474b18fc66fd90c2be108dd6e2a6771e3b7be4b95110729adefb3eaa",
+          "payload_state": "complete",
+          "recorded_data_crc": 9147,
+          "sample_offset": 826582
+        }
+      ],
+      "reason": null,
+      "reason_message": null,
+      "reconstruction": {
+        "attempted": false,
+        "candidate_count": null,
+        "choices": [],
+        "evaluated_count": null,
+        "match_count": null
+      },
+      "recorded_data_crc": 9147,
+      "status": "Intact",
+      "supporting_capture_ids": [
+        "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+        "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+      ]
+    },
+    {
+      "block_no": 5,
+      "conflict": null,
+      "label": "Data CRC verified in at least one capture",
+      "payload_sha256": "e33371fcb26df396b360fe322b978dd6c21b4e98d19f72f134b158dee43f0b7b",
+      "reads": [
+        {
+          "actual_len": 256,
+          "capture_id": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "e33371fcb26df396b360fe322b978dd6c21b4e98d19f72f134b158dee43f0b7b",
+          "payload_state": "complete",
+          "recorded_data_crc": 43698,
+          "sample_offset": 971377
+        },
+        {
+          "actual_len": 256,
+          "capture_id": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0",
+          "data_crc": "valid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "e33371fcb26df396b360fe322b978dd6c21b4e98d19f72f134b158dee43f0b7b",
+          "payload_state": "complete",
+          "recorded_data_crc": 43698,
+          "sample_offset": 971377
+        }
+      ],
+      "reason": null,
+      "reason_message": null,
+      "reconstruction": {
+        "attempted": false,
+        "candidate_count": null,
+        "choices": [],
+        "evaluated_count": null,
+        "match_count": null
+      },
+      "recorded_data_crc": 43698,
+      "status": "Intact",
+      "supporting_capture_ids": [
+        "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+        "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+      ]
+    },
+    {
+      "block_no": 6,
+      "conflict": null,
+      "label": "CRC match is evidence, not proof of the original bytes",
+      "payload_sha256": "9e1c72f9500e8b63ee12e5216db426c192fecca166d7ffc55a3db7a70b175b7f",
+      "reads": [
+        {
+          "actual_len": 256,
+          "capture_id": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+          "data_crc": "invalid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "674e133826794725886a1fb7c69301956918b3d61382c1c84b337ac1de9459b6",
+          "payload_state": "complete",
+          "recorded_data_crc": 35417,
+          "sample_offset": 1116172
+        },
+        {
+          "actual_len": 256,
+          "capture_id": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0",
+          "data_crc": "invalid",
+          "expected_len": 256,
+          "header_crc": "valid",
+          "payload_sha256": "9e08eadeb67334542deda00dbd50b2d1606c91a7bd36ab9ed33a6291efc10c48",
+          "payload_state": "complete",
+          "recorded_data_crc": 35417,
+          "sample_offset": 1116172
+        }
+      ],
+      "reason": null,
+      "reason_message": null,
+      "reconstruction": {
+        "attempted": true,
+        "candidate_count": 16,
+        "choices": [
+          {
+            "chosen": 97,
+            "observed": {
+              "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b": 101,
+              "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0": 97
+            },
+            "offset": 17,
+            "supporting_capture_ids": [
+              "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+            ]
+          },
+          {
+            "chosen": 224,
+            "observed": {
+              "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b": 224,
+              "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0": 225
+            },
+            "offset": 64,
+            "supporting_capture_ids": [
+              "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b"
+            ]
+          },
+          {
+            "chosen": 52,
+            "observed": {
+              "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b": 20,
+              "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0": 52
+            },
+            "offset": 143,
+            "supporting_capture_ids": [
+              "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+            ]
+          },
+          {
+            "chosen": 105,
+            "observed": {
+              "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b": 105,
+              "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0": 41
+            },
+            "offset": 201,
+            "supporting_capture_ids": [
+              "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b"
+            ]
+          }
+        ],
+        "evaluated_count": 16,
+        "match_count": 1
+      },
+      "recorded_data_crc": 35417,
+      "status": "Reconstructed \u00b7 CRC match",
+      "supporting_capture_ids": [
+        "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+        "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+      ]
+    },
+    {
+      "block_no": 7,
+      "conflict": null,
+      "label": "Data CRC verified in at least one capture",
+      "payload_sha256": "3f81040280db596870d8e90b9764beeceffb0bb555a5a2ca244269ff0d351eda",
+      "reads": [
+        {
+          "actual_len": 233,
+          "capture_id": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+          "data_crc": "valid",
+          "expected_len": 233,
+          "header_crc": "valid",
+          "payload_sha256": "3f81040280db596870d8e90b9764beeceffb0bb555a5a2ca244269ff0d351eda",
+          "payload_state": "complete",
+          "recorded_data_crc": 59102,
+          "sample_offset": 1260967
+        },
+        {
+          "actual_len": 233,
+          "capture_id": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0",
+          "data_crc": "valid",
+          "expected_len": 233,
+          "header_crc": "valid",
+          "payload_sha256": "3f81040280db596870d8e90b9764beeceffb0bb555a5a2ca244269ff0d351eda",
+          "payload_state": "complete",
+          "recorded_data_crc": 59102,
+          "sample_offset": 1260967
+        }
+      ],
+      "reason": null,
+      "reason_message": null,
+      "reconstruction": {
+        "attempted": false,
+        "candidate_count": null,
+        "choices": [],
+        "evaluated_count": null,
+        "match_count": null
+      },
+      "recorded_data_crc": 59102,
+      "status": "Intact",
+      "supporting_capture_ids": [
+        "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+        "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+      ]
+    }
+  ],
+  "candidate_cap": 64,
+  "duplicates_merged": [],
+  "export": {
+    "blockers": [],
+    "messages": {},
+    "permitted": true,
+    "reconstructed_blocks": [
+      6
+    ]
+  },
+  "final_block": 7,
+  "inputs": [
+    {
+      "capture_id": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b",
+      "observation_count": 8,
+      "sha256": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b"
+    },
+    {
+      "capture_id": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0",
+      "observation_count": 8,
+      "sha256": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+    }
+  ],
+  "reconstruction_enabled": true,
+  "recovered_payload_sha256": "4ac213a0e014229eb195bd7380962b9f4528147838ec9f1f7cb00be165e06e3a",
+  "schema": "taperescue.report/1"
+}

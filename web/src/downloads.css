@@ -1,0 +1,83 @@
+/* Download bar, reconstructed-block dialog, JSBeeb help, upload area. */
+.downloads {
+  margin: 1.5rem 0;
+}
+.downloads-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.downloads button,
+.upload button,
+.downloads-dialog button {
+  font: inherit;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+.downloads button:disabled,
+.upload button:disabled {
+  cursor: not-allowed;
+  color: #616161;
+  border-color: #9e9e9e;
+  background: #eeeeee;
+}
+.downloads button:focus-visible,
+.upload button:focus-visible,
+.downloads-dialog button:focus-visible {
+  outline: 3px solid #1565c0;
+  outline-offset: 2px;
+}
+.downloads-blockers {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid #c62828;
+  background: #ffffff;
+}
+.downloads-blockers p {
+  margin: 0 0 0.25rem;
+}
+.downloads-blockers ul {
+  margin: 0;
+}
+.downloads-error,
+.errors {
+  color: #b71c1c;
+}
+.downloads-dialog {
+  max-width: 36rem;
+  border: 1px solid #1a1a1a;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+}
+.downloads-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+.downloads-dialog h2 {
+  font-size: 1.1rem;
+  margin-top: 0;
+}
+.downloads-dialog-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+.upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.captures-list {
+  padding-left: 1.25rem;
+}
+.jsbeeb {
+  margin: 1.5rem 0;
+}
+.jsbeeb h2 {
+  font-size: 1rem;
+}

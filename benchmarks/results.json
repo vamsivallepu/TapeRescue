@@ -1,0 +1,84 @@
+{
+  "heading": "Inputs: generated STARMAP fixtures",
+  "schema": "taperescue.benchmark/1",
+  "contribution": "reconstruction across captures with byte provenance",
+  "taperescue_version": "0.1.0",
+  "algorithm_version": "taperescue-merge/1.0.0",
+  "candidate_cap": 64,
+  "decoder": "AtomTapeUtils ScanTape 98d1a8d1bed00aa22f1d72e3d5e91a254a69ec64 with patches/atomtapeutils-json-observations.patch",
+  "inputs": [
+    {
+      "capture": "damaged_a.wav",
+      "sha256": "2e09d3ce8d3bd4b042958c15dfb9d2d5a08774cf28ecbcff49e3bf06339d4c0b"
+    },
+    {
+      "capture": "damaged_b.wav",
+      "sha256": "83a0ab0428d8299299f810f8ceb1df25c5781b7f8b8e29b34cb34794c735d0a0"
+    }
+  ],
+  "reference_program_sha256": "4ac213a0e014229eb195bd7380962b9f4528147838ec9f1f7cb00be165e06e3a",
+  "modes": [
+    {
+      "mode": "best_single_capture",
+      "label": "Best single capture",
+      "captures": [
+        "damaged_a.wav"
+      ],
+      "recovered_blocks": 7,
+      "required_blocks": 8,
+      "complete_program": false,
+      "matches_reference": null,
+      "program_sha256": null,
+      "reconstructed_blocks": [],
+      "unrecovered": [
+        {
+          "block_no": 6,
+          "status": "CRC failed",
+          "reason": "single_read"
+        }
+      ]
+    },
+    {
+      "mode": "intact_only_merge",
+      "label": "Intact-block merge",
+      "captures": [
+        "damaged_a.wav",
+        "damaged_b.wav"
+      ],
+      "recovered_blocks": 7,
+      "required_blocks": 8,
+      "complete_program": false,
+      "matches_reference": null,
+      "program_sha256": null,
+      "reconstructed_blocks": [],
+      "unrecovered": [
+        {
+          "block_no": 6,
+          "status": "CRC failed",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "mode": "taperescue",
+      "label": "TapeRescue reconstruction",
+      "captures": [
+        "damaged_a.wav",
+        "damaged_b.wav"
+      ],
+      "recovered_blocks": 8,
+      "required_blocks": 8,
+      "complete_program": true,
+      "matches_reference": true,
+      "program_sha256": "4ac213a0e014229eb195bd7380962b9f4528147838ec9f1f7cb00be165e06e3a",
+      "reconstructed_blocks": [
+        6
+      ],
+      "unrecovered": []
+    }
+  ],
+  "quadbike": {
+    "ran": false,
+    "reason": "php is not on PATH; QUADBIKE_LSBLOCKS is not set; QUADBIKE_BIN is not set. lsblocks.php reads CSW or TIBET files, not WAV, so the comparison needs php, lsblocks.php and the Quadbike transcriber"
+  }
+}
