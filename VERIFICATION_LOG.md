@@ -3423,6 +3423,51 @@ Scale is fixed at 1: `server/sessions.py` keeps sessions and their temporary fil
 
 None.
 
+## Task 28.1: Restyle the UI as a lab for dead cassettes without changing what it reports
+
+Requirements: 18.1, 18.2, 18.3, 19.1
+
+Run from `/home/vamsik/TapeRescue` on 2026-11-23. Commit `79880fe`, deployed as `:taperescue.app.2`.
+
+### Concept
+
+The Kiroween category is Resurrection, so the page is a lab where dead cassettes are brought back: the recordings are bodies on the slab, the merged result is the patient, and the inspector is the autopsy sheet. The look borrows from the BBC Micro itself (green phosphor, CRT scanlines, a BASIC listing) rather than generic pumpkins and bats.
+
+### Changes
+
+- `web/src/index.css`: dark theme tokens, CRT scanlines and vignette, slow fog along the bottom, monospace headings. `prefers-reduced-motion` stops all animation; `prefers-contrast: more` removes the scanlines and fog.
+- `web/src/LabHeader.tsx` (new), `web/src/theme.css` (new): inline SVG cassette labelled `STARMAP` and `block 6 †`, with hub "eyes" that blink, ectoplasm drips, and torn tape held by cross-stitches. The reels spin only while a recovery runs. A heartbeat trace runs beside the busy message. The heading and the original intro text are unchanged; the SVG is `aria-hidden`.
+- `web/src/Verdict.tsx` (new): one line under the merged strip ("It's alive!", "Every block survived." or "Still dead."). Block numbers, capture names and blocker messages come from the report and export decision; the reconstructed case keeps "A CRC match is evidence, not proof."
+- `web/src/strips.css`: strips drawn as magnetic tape. Cell colours still come from `status.ts` (the design table); overlays only darken or edge the cell. CRC failed and Header failed cells are cracked with a torn bottom edge; Reconstructed has a stitched seam and a pulsing ectoplasm glow; Unresolved, CRC unreadable and Truncated flicker; Missing is outlined as empty. Pseudo-elements have empty `content`, so no text is added to accessible names.
+- `web/src/inspector.css`, `web/src/BlockInspector.tsx`: the block heading is a toe tag; the evidence caveat is a pumpkin-bordered note. On reconstructed blocks each capture's byte gets `byte-kept` (green) or `byte-discarded` (struck through), and the chosen byte glows. No text changed.
+- `web/src/downloads.css`, `web/src/DownloadBar.tsx`, `web/src/App.tsx`: upload area as "the slab", an empty-state hint, primary buttons for **Try sample** and **Download tape image**, a darker blurred dialog backdrop, the JSBeeb help as a green screen with steps numbered 10–50 through `::marker`, and a footer stating the fixtures are generated, no ROMs are bundled, and recordings are never sent to the emulator.
+- `web/index.html`, `web/public/favicon.svg` (new): title, theme colour, same-origin SVG favicon.
+- No web fonts, remote assets or `data:` URIs; everything is CSS or inline SVG, so the CSP `default-src 'self'` is unchanged.
+
+### Commands and results
+
+| Command | Result |
+| --- | --- |
+| `cd web && npm test` (before and after) | 27 passed both times; no test was changed |
+| `cd web && npm run build` | `tsc -b` clean after one fix (`as const` on the drip coordinates); `dist/` has `index.html`, `favicon.svg`, one JS and one CSS asset |
+| `.venv/bin/python -m pytest -q` | `504 passed, 1 warning` |
+| Headless Chrome 158 over CDP against local `uvicorn` (port 8010): idle, busy (4 s simulated latency), result, dialog | No console messages, so no CSP violations. Verdict text as above; kept bytes `0x61, 0xE0, 0x34, 0x69`, discarded `0x65, 0xE1, 0x14, 0x29` (match `damage.json`); merged cell backgrounds `rgb(46,125,50)` and `rgb(21,101,192)` (design table); dialog opens |
+| `scripts/deploy_aws_lightsail.sh --build` | Exit 0; `:taperescue.app.2` active |
+| `curl` on the public URL | New title and assets, `favicon.svg` 200 `image/svg+xml`; `POST /api/sample` then `tape.uef` SHA-256 `e7041f16…2045`; DELETE 204 |
+| Same headless Chrome run against the public URL (5 s initial wait) | Same verdict, kept, discarded and colour values; dialog opens; no console messages. A first run with a 1.5 s wait clicked before the bundle finished loading and showed the idle page |
+
+Screenshots: `verification/evidence/theme-sample-result.png` (SHA-256 `cb505eb2…bd63`) and `verification/evidence/theme-confirm-dialog.png` (SHA-256 `6919cc92…acee`), both from the local run.
+
+### Not verified
+
+- Firefox, Safari and mobile layouts were not checked.
+- The reduced-motion and high-contrast fallbacks were written but not rendered.
+- `::marker` with custom `content` is not supported in older Safari; there the list falls back to its normal numbers.
+
+### Blockers
+
+None.
+
 # Pending Items
 
 Manual or external steps that have not been performed. No result is claimed for any item until its evidence field is filled in with a link, file path, or log excerpt and its status is changed. Commands are run from the repository root with the virtual environment's `taperescue` (`.venv/bin/taperescue`) and the decoder built by `scripts/build_decoder.sh` at `build/decoder/ScanTape`.
