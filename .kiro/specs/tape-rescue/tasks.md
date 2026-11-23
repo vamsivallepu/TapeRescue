@@ -466,6 +466,10 @@ Each task in this section writes `verification/entries/<task-id>.md` under the v
     - Copy the user's screenshot into `verification/evidence/jsbeeb-starmap.png` with its SHA-256, and record the user's description of the web UI steps they performed in `verification/pending.md` and the README, without claiming steps the user did not describe
     - _Requirements: 18.1, 18.3, 18.5, 22.2, 22.3_
 
+  - [x] 26.6 Save the web UI screenshots and record them as click-through evidence
+    - Copy the user's two web UI screenshots into `verification/evidence/` with their SHA-256, cross-check every visible value against the sample report and the design's status labels, and update P2's evidence and the README walkthrough; do not claim screens the screenshots do not show
+    - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 22.2, 22.3_
+
 ## Notes
 
 - Sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
@@ -513,7 +517,8 @@ Each task in this section writes `verification/entries/<task-id>.md` under the v
     { "id": 31, "tasks": ["26.2"] },
     { "id": 32, "tasks": ["26.3"] },
     { "id": 33, "tasks": ["26.4"] },
-    { "id": 34, "tasks": ["26.5"] }
+    { "id": 34, "tasks": ["26.5"] },
+    { "id": 35, "tasks": ["26.6"] }
   ]
 }
 ```

@@ -1211,6 +1211,18 @@
         "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
         "timestamp": 1795415908390
       }
+    ],
+    "26.6 Save the web UI screenshots and record them as click-through evidence": [
+      {
+        "executionId": "0ff76c8a-bc23-45d6-8c1c-ba36779b5d18",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795416177284
+      },
+      {
+        "executionId": "0ff76c8a-bc23-45d6-8c1c-ba36779b5d18",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795416572266
+      }
     ]
   }
 }
