@@ -190,9 +190,27 @@ docker run --rm -p 8000:8000 taperescue
 
 Open <http://127.0.0.1:8000/>. The image builds the patched decoder and the UI itself, runs `uvicorn server.app:app` as user `10001`, and bundles only the three generated STARMAP WAVs. It contains no BBC Micro ROMs and no emulator. Checked with `curl`: `GET /` returned 200, `POST /api/sample` returned 200 with block 6 `Reconstructed · CRC match`, and the downloaded tape image passed `taperescue verify-uef` against the reference.
 
+### 9. Deploy to AWS
+
+The public instance runs the same container on one Amazon Lightsail container service, which serves both the UI and the API over HTTPS:
+
+<https://taperescue.9twzsb9wks5a8.us-east-2.cs.amazonlightsail.com/>
+
+```sh
+scripts/deploy_aws_lightsail.sh --build
+```
+
+The script uses the AWS profile `personal` only, in `us-east-2`. It creates the service `taperescue` (Micro power: 0.25 vCPU, 1 GB RAM, one node, USD 10 per month) if it does not exist, pushes the local image, deploys it with a health check on `/`, and waits until the deployment is active. It needs the AWS CLI v2, Docker and the [`lightsailctl`](https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-install-software.html) plugin. The service stays at one node because sessions and their temporary files live inside the container.
+
+To delete the service and stop its charges:
+
+```sh
+aws lightsail delete-container-service --service-name taperescue --profile personal --region us-east-2
+```
+
 ## Judge walkthrough
 
-This follows the demo sequence on the bundled sample. It uses the web app from step 7 or 8.
+This follows the demo sequence on the bundled sample. It uses the web app from step 7 or 8, or the public instance from step 9.
 
 The web UI has been checked by component tests (`web/src/*.test.ts(x)`) and by `curl` against the API. On 2026-11-23 the user reported running part of this sequence in a real browser: they opened the web UI, clicked **Try sample**, selected block 6, and clicked **Download tape image**, which saved `~/Downloads/STARMAP.uef`. The user later posted two screenshots of the web UI after **Try sample** with block 6 selected, saved as [`verification/evidence/webui-sample-block6-strips.png`](verification/evidence/webui-sample-block6-strips.png) (SHA-256 `c65ad8f5…9a19`, taken 12:10:33 +0530) and [`verification/evidence/webui-sample-block6-inspector.png`](verification/evidence/webui-sample-block6-inspector.png) (SHA-256 `7f829f57…28a7`, taken 12:10:45 +0530). They were taken about 1.5 hours after `STARMAP.uef` was saved (10:34:26 +0530), so they may come from a later **Try sample** session. Every value they show matches the sample report (`verification/entries/26.6.md`). They confirm in a real browser the strips in step 1, the inspector in steps 2 and 3, and the **Download report** and enabled **Download tape image** buttons and JSBeeb instructions in steps 4 and 5. They do not show the download dialog or a download. That part of step 4, and the disabled-button case, come from the code and tests only. Step 5 has been run by the user in JSBeeb (see below).
 
@@ -215,7 +233,7 @@ Without a browser, `.venv/bin/taperescue demo` (step 5) prints the same sequence
 
 ## Status and pending items
 
-The automated checks above pass. The external and manual steps are tracked with their steps and evidence fields in [`verification/pending.md`](verification/pending.md). P1 and P2 have user-supplied evidence. P3, P5 and P6 have not been performed, and no result is claimed for them.
+The automated checks above pass. The external and manual steps are tracked with their steps and evidence fields in [`verification/pending.md`](verification/pending.md). P1 and P2 have user-supplied evidence, and P4 and P5 were run in this project. P3 and P6 have not been performed, and no result is claimed for them.
 
 | Item | Step | Status |
 | --- | --- | --- |
@@ -223,7 +241,7 @@ The automated checks above pass. The external and manual steps are tracked with 
 | P2 | Run the `.uef` recovered from the two damaged fixtures in JSBeeb | Done (manual, user-run): screenshot of the finished star map with no error. The user states the file loaded was `STARMAP.uef`; the copy in `~/Downloads` has the recovered image's SHA-256 `e7041f16…2045`. The user reports getting it in the web UI via **Try sample**, block 6, and **Download tape image**. Screenshots: `verification/evidence/jsbeeb-starmap.png`; web UI strips and block 6 inspector after **Try sample**: `verification/evidence/webui-sample-block6-strips.png`, `verification/evidence/webui-sample-block6-inspector.png` |
 | P3 | Test with permission-cleared real archival captures | Pending |
 | P4 | Quadbike `lsblocks.php +r` comparison | Done: Quadbike 2.0.5 and lsblocks v1.2 built and run locally; 7 of 8 blocks per damaged capture, block 6 not repaired |
-| P5 | Deploy the container to a functional public URL (it has only been run locally) | Pending |
+| P5 | Deploy the container to a functional public URL | Done: <https://taperescue.9twzsb9wks5a8.us-east-2.cs.amazonlightsail.com/> on Amazon Lightsail. Checked with `curl` on 2026-11-23: **Try sample**, the tape image (`e7041f16…2045`, passes `verify-uef`), the report, and an upload of both damaged WAVs. No browser screenshot of the public URL yet |
 | P6 | Publish the YouTube demo | Pending |
 
 ## Project files

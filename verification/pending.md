@@ -55,14 +55,13 @@ Manual or external steps that have not been performed. No result is claimed for 
 
 ## P5: Deployment to a functional URL
 
-- Status: pending
+- Status: done (task 27.1, deployed and checked with `curl`; no browser screenshot of the public URL yet)
 - Requirement: 22.2
-- Current state: the container image builds and runs locally (task 21.1: `docker build -t taperescue:local .`, then `docker run --rm -p 8000:8000 taperescue:local`, UI at `http://127.0.0.1:8000/`). It has not been pushed to any registry or deployed to any host.
 - Step:
   1. Push the image to a registry and deploy it to a host that serves it over HTTPS.
   2. Open the public URL, click **Try sample**, and confirm that block 6 shows `Reconstructed · CRC match` and **Download tape image** returns `STARMAP.uef`.
   3. Record the public URL, the image digest deployed, the date, and a screenshot of the sample result.
-- Evidence:
+- Evidence: Deployed on 2026-11-23 with `scripts/deploy_aws_lightsail.sh` to the Amazon Lightsail container service `taperescue` (AWS profile `personal`, account `261513860644`, region `us-east-2`, power Micro, scale 1). Public URL: <https://taperescue.9twzsb9wks5a8.us-east-2.cs.amazonlightsail.com/>. Image `taperescue:local` `sha256:c03b4fafeef975d51ce73ad62a4a4d75d0994f5e5ac6018c8bba962603d49b76`, built from commit `db2ea5c`, pushed as `:taperescue.app.1` (registry digest `sha256:17d8de68af77c4f097527ce3ee7f9610f7ec41bb3c5810192d8dd83e1c216fa0`). Checked with `curl` against the public URL: `GET /` returned HTTP/2 200 with `content-security-policy: default-src 'self'`, and the JS asset loaded; `POST /api/sample` returned 200 with blocks 0–5 and 7 `Intact`, block 6 `Reconstructed · CRC match` and export permitted; `tape.uef` downloaded as `STARMAP.uef` with SHA-256 `e7041f167d9e33e192604e0eeca7f4400d4af3a98932bea43eb9d6c3de1a2045` and passed `taperescue verify-uef` against the reference; `report.json` is byte-identical to the local `taperescue recover` report; an upload of both damaged WAVs (5,959,760 bytes) returned 200 with the same recovered payload SHA-256; a 48 kHz stereo WAV returned 422 `unsupported_format`; DELETE returned 204. Step 3's screenshot of the public URL in a browser has not been supplied. Commands and output are in `verification/entries/27.1.md`.
 
 ## P6: YouTube demo
 

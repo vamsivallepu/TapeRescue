@@ -470,6 +470,15 @@ Each task in this section writes `verification/entries/<task-id>.md` under the v
     - Copy the user's two web UI screenshots into `verification/evidence/` with their SHA-256, cross-check every visible value against the sample report and the design's status labels, and update P2's evidence and the README walkthrough; do not claim screens the screenshots do not show
     - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 22.2, 22.3_
 
+### AWS deployment
+
+Each task in this section writes `verification/entries/<task-id>.md` under the verification log rule above.
+
+- [x] 27. Deploy the container to AWS (P5)
+  - [x] 27.1 Deploy the single container to an Amazon Lightsail container service and verify the public URL
+    - Use the `personal` AWS profile only. One Lightsail container service (Micro, scale 1) serves the UI and the API from the existing image, so sessions stay on one node. Add `scripts/deploy_aws_lightsail.sh`, deploy, check the public HTTPS URL with **Try sample**, the tape and report downloads and a real two-capture upload, record the URL, image digest and cost in P5 and the README, and document teardown
+    - _Requirements: 17.1, 17.6, 19.1, 22.2_
+
 ## Notes
 
 - Sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
@@ -518,7 +527,8 @@ Each task in this section writes `verification/entries/<task-id>.md` under the v
     { "id": 32, "tasks": ["26.3"] },
     { "id": 33, "tasks": ["26.4"] },
     { "id": 34, "tasks": ["26.5"] },
-    { "id": 35, "tasks": ["26.6"] }
+    { "id": 35, "tasks": ["26.6"] },
+    { "id": 36, "tasks": ["27.1"] }
   ]
 }
 ```
