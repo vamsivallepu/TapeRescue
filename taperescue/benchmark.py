@@ -186,32 +186,80 @@ def run_modes(
 
 # --- Quadbike ------------------------------------------------------------------
 
-_BLOCK_ROW = re.compile(r"^#\s*\d+\s+\[")
+# lsblocks 1.2 prints a row as ``#%3d`` then ``[%8d]`` (CSW sample number) or
+# ``{ L%5d }`` (TIBET line number), the quoted file name, the header fields,
+# and the ``hE`` / ``dE`` columns holding ``HC``, ``DC`` or ``DI``.
+_BLOCK_ROW = re.compile(r"^#\s*(\d+)\s+(?:\[\s*\d+\]|\{\s*L\s*\d+\s*\})")
 _ERROR_TOKEN = re.compile(r"\b(HC|DC|DI)\b")
 _METRICS = re.compile(r"^M: Metrics\|Errors\|(\d+)\|Blocks\|(\d+)\s*$")
+# With ``+r``, after the table and the metrics line:
+#   Block #6: bad data CRC: read 8a59, computed c6f8.
+#    Try bitflip ...
+#   { L  619 } BITFLIP "NAME", block ID 6: flip byte ...   (on success)
+#   Bitflip failed.                                          (on failure)
+_REPAIR_TRY = re.compile(r"^Block #(\d+): bad data CRC")
+_REPAIR_OK = re.compile(r'BITFLIP ".*", block ID (\d+):')
+_LSBLOCKS_VERSION = re.compile(r"^lsblocks\.php, (v\S+)")
 
 
 def parse_lsblocks(stdout: str) -> dict:
-    """Count block rows in ``lsblocks.php`` output.
+    """Count block rows in ``lsblocks.php +r`` output (format of lsblocks 1.2).
 
-    A row starts ``#  <id> [<sample>]``. A row is counted as recovered when it
-    carries none of the error codes ``HC`` (header CRC), ``DC`` (data CRC) or
-    ``DI`` (incomplete data). The summary ``M: Metrics|Errors|E|Blocks|N`` line
-    is recorded as printed.
+    A row is ``#  <id> [<sample>]`` (CSW input) or ``#  <id> { L <line> }``
+    (TIBET input). Its error codes are read from the text after the quoted
+    file name: ``HC`` (header CRC), ``DC`` (data CRC), ``DI`` (incomplete data).
+    The table and the ``M: Metrics|Errors|E|Blocks|N`` line are printed before
+    the ``+r`` repair runs, so they show the state before repair. Repair
+    attempts (``Block #N: bad data CRC``) and successes (``BITFLIP ... block ID
+    N``) are parsed separately. ``recovered_after_repair`` counts rows with no
+    error code plus rows whose only error was ``DC`` and whose bit-flip repair
+    succeeded. ``<id>`` is lsblocks' row index, not the block number column.
     """
-    rows = [line.rstrip() for line in stdout.splitlines() if _BLOCK_ROW.match(line)]
-    ok = [r for r in rows if not _ERROR_TOKEN.search(r.split("]", 1)[-1])]
+    lines = stdout.splitlines()
+    rows: list[str] = []
+    errors_by_id: dict[int, set[str]] = {}
+    attempted: list[int] = []
+    repaired: list[int] = []
     metrics = None
-    for line in stdout.splitlines():
-        m = _METRICS.match(line.strip())
+    version = None
+    for line in lines:
+        m = _BLOCK_ROW.match(line)
         if m:
-            metrics = {"errors": int(m.group(1)), "blocks": int(m.group(2))}
+            rows.append(line.rstrip())
+            tail = line[m.end():].rsplit('"', 1)[-1]
+            errors_by_id[int(m.group(1))] = set(_ERROR_TOKEN.findall(tail))
+            continue
+        stripped = line.strip()
+        if (mm := _METRICS.match(stripped)):
+            metrics = {"errors": int(mm.group(1)), "blocks": int(mm.group(2))}
+        elif (mt := _REPAIR_TRY.match(stripped)):
+            attempted.append(int(mt.group(1)))
+        elif (mr := _REPAIR_OK.search(stripped)):
+            repaired.append(int(mr.group(1)))
+        elif version is None and (mv := _LSBLOCKS_VERSION.match(stripped)):
+            version = mv.group(1)
+    ok = sum(not errs for errs in errors_by_id.values())
+    fixed = sum(errors_by_id.get(i) == {"DC"} for i in set(repaired))
     return {
+        "lsblocks_version": version,
         "block_rows": len(rows),
-        "rows_without_errors": len(ok),
+        "rows_without_errors": ok,
+        "repair_attempted": attempted,
+        "repair_succeeded": repaired,
+        "recovered_after_repair": ok + fixed,
         "metrics": metrics,
         "rows": rows,
     }
+
+
+_QUADBIKE_VERSION = re.compile(r"^(Quadbike \S+?),")
+
+
+def _quadbike_version(stdout: str) -> str | None:
+    for line in stdout.splitlines():
+        if (m := _QUADBIKE_VERSION.match(line.strip())):
+            return m.group(1)
+    return None
 
 
 def _quadbike_missing(env: Mapping[str, str], which: Callable[[str], str | None]) -> list[str]:
@@ -280,6 +328,8 @@ def quadbike_comparison(
             runs.append({
                 "capture": name,
                 "ran": True,
+                "quadbike_version": _quadbike_version(
+                    t.stdout.decode("utf-8", errors="replace")),
                 "exit_status": r.returncode,
                 "command": ["php", "-f", "lsblocks.php", "+r", "capture.tibet"],
                 **parse_lsblocks(stdout),
@@ -373,18 +423,34 @@ def render_markdown(results: dict) -> str:
         lines.append("No Quadbike result is claimed. The comparison is listed as pending item "
                      "P4 in `verification/pending.md`.")
     else:
-        lines += ["| Capture | Ran | Block rows | Rows without errors | Metrics line |",
-                  "| --- | --- | --- | --- | --- |"]
+        versions = sorted({
+            f"{run.get('quadbike_version') or 'Quadbike (version not printed)'}, "
+            f"lsblocks.php {run.get('lsblocks_version') or '(version not printed)'}"
+            for run in qb["runs"] if run["ran"]})
+        if versions:
+            lines += [f"Run with {'; '.join(versions)}. Each WAV is transcribed to TIBET "
+                      "by Quadbike, then listed by `lsblocks.php +r`. The table and the "
+                      "metrics line are printed before the `+r` bit-flip repair runs.", ""]
+        lines += ["| Capture | Ran | Block rows | Rows without errors | Bit-flip repair "
+                  "| Recovered after repair | Metrics line |",
+                  "| --- | --- | --- | --- | --- | --- | --- |"]
         for run in qb["runs"]:
             if run["ran"]:
                 met = run["metrics"]
                 met_text = "none" if met is None else (
                     f"Errors {met['errors']}, Blocks {met['blocks']}")
+                tried = run.get("repair_attempted", [])
+                done = set(run.get("repair_succeeded", []))
+                repair_text = ", ".join(
+                    f"block {i} {'repaired' if i in done else 'failed'}" for i in tried
+                ) or "not needed"
                 lines.append(f"| {run['capture']} | yes (exit {run['exit_status']}) "
                              f"| {run['block_rows']} | {run['rows_without_errors']} "
-                             f"| {met_text} |")
+                             f"| {repair_text} "
+                             f"| {run.get('recovered_after_repair', run['rows_without_errors'])} "
+                             f"of {run['block_rows']} | {met_text} |")
             else:
-                lines.append(f"| {run['capture']} | no: {run['reason']} | | | |")
+                lines.append(f"| {run['capture']} | no: {run['reason']} | | | | | |")
     lines += [
         "",
         "## Contribution",

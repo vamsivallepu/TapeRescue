@@ -178,6 +178,15 @@ These are the direct development dependencies. With their transitive dependencie
 | @types/react | 19.3.0 | MIT |
 | @types/react-dom | 19.3.0 | MIT |
 
+### Quadbike (optional benchmark comparison)
+
+| Component | Version | License | Where it comes from |
+| --- | --- | --- | --- |
+| Quadbike | 2.0.5 (`quadbike-2.0.5-rc7.zip`, SHA-256 `1c6931bb05c7445c543fcd0d9eb1b3b0fda808b802af3ba37b5f5433be979920`) | GPL-2.0-or-later (stated in the source file headers, for example `src/quadbike.c`, Copyright (C) 2026 'Diminished') | https://beebstuff.uk/f/acorn/quadbike/releases/2.0.5/ |
+| `lsblocks.php` | v1.2 (`lsblocks-1.2.php.txt`, SHA-256 `954928818162ae961135b3f8d4e51cae3111d5972464c043425b0c00dc18ea3e`) | GPL-2.0-or-later | https://beebstuff.uk/f/acorn/quadbike/scripts/ |
+
+`taperescue benchmark` can run Quadbike and `lsblocks.php` as separate programs, through `QUADBIKE_BIN` and `QUADBIKE_LSBLOCKS`, for the comparison in `benchmarks/results.md`. A developer downloads them and builds Quadbike into the git-ignored `build/quadbike/` directory. Neither is committed to this repository, copied into the container image, linked into TapeRescue, or loaded as a library by it. The release zip has no separate license file, so the license statement above is taken from the source headers. The local build links the system libraries libsndfile, libFLAC and zlib, which are also not distributed.
+
 ### Container build stages
 
 | Base image (tag) | Used for | In the runtime image? |

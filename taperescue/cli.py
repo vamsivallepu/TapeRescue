@@ -762,7 +762,9 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
         for run in qb["runs"]:
             if run["ran"]:
                 print(f"Quadbike lsblocks.php +r     {run['capture']}: {run['block_rows']} block "
-                      f"rows, {run['rows_without_errors']} without errors")
+                      f"rows, {run['rows_without_errors']} without errors, "
+                      f"{run.get('recovered_after_repair', run['rows_without_errors'])} "
+                      f"recovered after bit-flip repair")
             else:
                 print(f"Quadbike lsblocks.php +r     {run['capture']}: not run ({run['reason']})")
     else:

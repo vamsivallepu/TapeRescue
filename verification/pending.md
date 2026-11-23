@@ -4,25 +4,28 @@ Manual or external steps that have not been performed. No result is claimed for 
 
 ## P1: Run the clean `.uef` in JSBeeb
 
-- Status: pending
+- Status: done (covered by the P2 run; identical image bytes)
 - Requirement: 22.2
 - Step:
   1. Produce the image: `taperescue recover fixtures/starmap/clean.wav --uef clean.uef`. Optionally check it with `taperescue verify-uef clean.uef --reference fixtures/starmap/reference_payloads.json`.
   2. Open JSBeeb at <https://bbc.xania.org/> (the link the web UI shows), and load `clean.uef` with the emulator's local tape picker. The file stays on the local machine.
   3. At the BASIC prompt type `*TAPE`, then `CHAIN "STARMAP"`, and confirm that the program loads and the star map draws to completion.
   4. Record the JSBeeb URL used, the browser, the SHA-256 of `clean.uef`, and a screenshot or screen recording of the finished star map.
-- Evidence:
+- Evidence: No separate run of `clean.uef` was made. The image exported from `clean.wav` and the image recovered from `damaged_a.wav` and `damaged_b.wav` are byte-identical: both have SHA-256 `e7041f167d9e33e192604e0eeca7f4400d4af3a98932bea43eb9d6c3de1a2045`, `cmp` found them identical in task 18 (`cmp /tmp/m2x/clean.uef /tmp/m2x/demo/STARMAP.uef`), and `sha256sum` gave the same digest for both in task 23.4. The P2 run therefore exercised the same bytes. See P2 and `verification/entries/26.1.md`.
 
 ## P2: Run the recovered `.uef` in JSBeeb
 
-- Status: pending
+- Status: done (manual, user-run)
 - Requirement: 22.2
 - Step:
   1. Produce the image from the two damaged fixtures: `taperescue demo`. It writes `demo-out/STARMAP.uef` and `demo-out/report.json` (`demo-out/` is git-ignored). The web app's **Try sample** then **Download tape image** gives the same image.
   2. Load `demo-out/STARMAP.uef` in JSBeeb at <https://bbc.xania.org/> with the local tape picker.
   3. Type `*TAPE`, then `CHAIN "STARMAP"`, and confirm that the star map draws to completion. STARMAP needs the bytes of block 6, the reconstructed block, to run to completion (Requirement 4.6).
   4. Record the JSBeeb URL used, the browser, the SHA-256 of `STARMAP.uef`, and a screenshot or screen recording of the finished star map.
-- Evidence:
+- Evidence: Screenshot posted by the user in the Kiro chat on 2026-11-23; to be saved as `verification/evidence/jsbeeb-starmap.png` (not yet in the repository). The user was asked to start the container, click **Try sample**, click **Download tape image**, load the downloaded `STARMAP.uef` (the recovered image) in JSBeeb at <https://bbc.xania.org/> with the local tape picker, then type `*TAPE` and `CHAIN "STARMAP"`. The user then posted the screenshot with the words "Here is the screenshot".
+  - What it shows: the JSBeeb UI (menus BBC B, Media, Reset, State, Debug, More; status bar "drive 0/2 Elite", "drive 1/3 empty", "cassette motor STARMAP"). On the emulated screen: the title "STARMAP" at top centre, "The northern winter sky" in cyan, "240 stars plotted" in blue/purple, the four constellations Plough, Cassiopeia, Cygnus and Orion with labels, cyan connecting lines and white "+" stars, a crescent moon top right, a band of small blue/purple dots across the middle, a short white diagonal line top left, white "+" stars across the sky, hills along the bottom, the compass letters W, N and E along the bottom edge, and the BASIC prompt `>` at the top left. No error message is visible.
+  - Cross-check against `fixtures/starmap/STARMAP.bas`: every visible text string and drawn element matches the source line that produces it, and the star count 240 matches `PROCstars(240)` (line 100). The constellation labels and lines are drawn by `PROCconstellations` (lines 3000–3150, program offsets 1538–1771), which lies entirely in block 6, the reconstructed block. If the damaged value from `damaged_a.wav` at block 6 offset 17 or from `damaged_b.wav` at offset 201 had been loaded, BASIC would have stopped with an error before the constellations were complete. No mismatch was found. The table is in `verification/entries/26.1.md`.
+  - Not shown by the screenshot: which `.uef` file was loaded, its SHA-256, the load progress and block-by-block loading messages, and the browser used. The user did not say which file was loaded or whether the web UI steps were followed; the claim that this was the recovered image rests on the instructions given, not on the screenshot. The run also cannot distinguish the value at block 6 offset 64, which is the low byte of the number of line 3040. The web UI click-through (block inspector, confirmation dialog) is not covered by this evidence.
 
 ## P3: Test with real archival captures
 
@@ -36,12 +39,12 @@ Manual or external steps that have not been performed. No result is claimed for 
 
 ## P4: Quadbike comparison (if not runnable locally)
 
-- Status: pending
+- Status: done (task 26.2, run locally)
 - Requirement: 15.3, 22.2
 - Step: Run Quadbike `lsblocks.php +r` on Damaged_Fixture_A and Damaged_Fixture_B and record the recovered block count. If it cannot be run, state why.
-- Why it has not run (task 17.1): `taperescue benchmark` recorded `quadbike: {"ran": false, "reason": "php is not on PATH; QUADBIKE_LSBLOCKS is not set; QUADBIKE_BIN is not set. ..."}` in `benchmarks/results.json`. On the development machine (Ubuntu 24.04) PHP is not installed (`command -v php` finds nothing; `apt-cache policy php-cli` shows `Installed: (none)`), and installing it needs `sudo`, which asks for a password, so it is a manual step. `lsblocks.php` also reads only CSW or TIBET files, not WAV (its usage line is `php -f lsblocks.php [options] <CSW/TIBET/TIBETZ file>`), so each fixture must first be transcribed by the Quadbike executable (`quadbike -t capture.tibet capture.wav`). Quadbike has no Linux binary; it must be built from source with `src/build.sh`, which needs the libsndfile development headers (`/usr/include/sndfile.h` is absent here), again a `sudo` install. Quadbike and its PHP scripts are GPL-2.0-or-later and are downloadable from <https://beebstuff.uk/f/acorn/quadbike/> (releases 2.0.1 to 2.0.5, scripts including `lsblocks-1.2.php.txt`); the site states it will go offline on or before 22 February 2027.
-- To run it: install `php-cli` and `libsndfile1-dev`, build Quadbike from a release, then run `QUADBIKE_LSBLOCKS=/path/to/lsblocks.php QUADBIKE_BIN=/path/to/quadbike .venv/bin/taperescue benchmark`. The benchmark transcribes each damaged WAV to TIBET, runs `php -f lsblocks.php +r capture.tibet` with an argument list, and records the block rows and the `M: Metrics|Errors|E|Blocks|N` line from the actual output.
-- Evidence:
+- History (task 17.1): the comparison first did not run because PHP and the libsndfile headers were not installed and installing them needed `sudo`. The user later installed `php-cli` (PHP 8.3.6) and `libsndfile1-dev` (1.2.2).
+- To rerun it: build Quadbike as described in the README benchmark section, then run `QUADBIKE_BIN=build/quadbike/src205/quadbike-2.0.5-rc7/src/quadbike QUADBIKE_LSBLOCKS=build/quadbike/lsblocks.php .venv/bin/taperescue benchmark`. The benchmark transcribes each damaged WAV to TIBET with `quadbike -t capture.tibet <wav>`, then runs `php -f lsblocks.php +r capture.tibet`, both with argument lists.
+- Evidence: `benchmarks/results.json` (`quadbike.runs`) and `benchmarks/results.md`, and `verification/entries/26.2.md`, which has the commands and raw output. Quadbike 2.0.5 (`quadbike-2.0.5-rc7.zip`, SHA-256 `1c6931bb05c7445c543fcd0d9eb1b3b0fda808b802af3ba37b5f5433be979920`, matching the published `sha256.txt`) was built with `./build.sh linux gcc release`. `lsblocks.php` v1.2 (`lsblocks-1.2.php.txt`, SHA-256 `954928818162ae961135b3f8d4e51cae3111d5972464c043425b0c00dc18ea3e`, matching the published value) ran under PHP 8.3.6. For each of `damaged_a.wav` and `damaged_b.wav`, lsblocks lists 8 blocks. Blocks 0–5 and 7 have no error code, and block 6 is marked `DC` (data CRC mismatch). The metrics line is `M: Metrics|Errors|1|Blocks|8`. The `+r` repair then prints `Block #6: bad data CRC: read 8a59, computed c6f8.` (damaged_a; `computed 66b5` for damaged_b) followed by `Bitflip failed.`, so Quadbike recovers 7 of 8 blocks from each capture. As a baseline, `clean.wav` gives 8 blocks with no errors and `M: Metrics|Errors|0|Blocks|8`.
 
 ## P5: Deployment to a functional URL
 

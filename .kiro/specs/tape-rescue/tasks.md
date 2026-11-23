@@ -441,6 +441,23 @@ Each task in this section writes `verification/entries/<task-id>.md` under the v
     - Run the full Python suite, the web tests, the hook command and the container smoke; regenerate VERIFICATION_LOG.md; confirm P1–P6 remain pending
     - _Requirements: 22.1_
 
+### Manual verification follow-up
+
+Each task in this section writes `verification/entries/<task-id>.md` under the verification log rule above.
+
+- [x] 26. Record manual verification and run the Quadbike comparison
+  - [x] 26.1 Record the user's JSBeeb run of STARMAP (P1, P2)
+    - Record the user-supplied screenshot evidence in `verification/pending.md` for P1 and P2, cross-check the visible screen content against `fixtures/starmap/STARMAP.bas`, and update the README status section; do not claim anything the screenshot does not show
+    - _Requirements: 22.2, 22.3_
+
+  - [x] 26.2 Build Quadbike and run the `lsblocks.php +r` comparison (P4)
+    - Fetch a Quadbike release (GPL-2.0-or-later) into a git-ignored build directory, build it, run `taperescue benchmark` with `QUADBIKE_BIN` and `QUADBIKE_LSBLOCKS`, and record the real output; if it cannot run, record why and keep P4 pending
+    - _Requirements: 15.2, 15.3, 22.2_
+
+  - [x] 26.3 Checkpoint: manual verification follow-up
+    - Run the full Python suite; regenerate VERIFICATION_LOG.md; confirm the pending-item statuses match the recorded evidence
+    - _Requirements: 22.1_
+
 ## Notes
 
 - Sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
@@ -483,7 +500,10 @@ Each task in this section writes `verification/entries/<task-id>.md` under the v
     { "id": 26, "tasks": ["23.5"] },
     { "id": 27, "tasks": ["24"] },
     { "id": 28, "tasks": ["25.1", "25.2", "25.3", "25.4"] },
-    { "id": 29, "tasks": ["25.5"] }
+    { "id": 29, "tasks": ["25.5"] },
+    { "id": 30, "tasks": ["26.1"] },
+    { "id": 31, "tasks": ["26.2"] },
+    { "id": 32, "tasks": ["26.3"] }
   ]
 }
 ```

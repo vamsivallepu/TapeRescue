@@ -48,8 +48,13 @@ def test_pending_items_cover_every_external_step():
     for phrase in expected:
         assert any(phrase in t for t in titles), phrase
     for item in items:
-        assert "- Status: pending" in item
-        assert re.search(r"^- Evidence:\s*$", item, flags=re.MULTILINE)
+        # Requirement 22.3: an item without recorded evidence stays pending, so an
+        # item marked anything other than pending must carry evidence.
+        status = re.search(r"^- Status: (.+)$", item, flags=re.MULTILINE)
+        evidence = re.search(r"^- Evidence:(.*)$", item, flags=re.MULTILINE)
+        assert status and evidence, item.splitlines()[0]
+        if not evidence.group(1).strip():
+            assert status.group(1).strip() == "pending", item.splitlines()[0]
 
 
 def _write(path: Path, text: str) -> None:

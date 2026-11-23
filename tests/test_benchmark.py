@@ -15,6 +15,7 @@ from taperescue.benchmark import HEADING, parse_lsblocks, quadbike_comparison
 
 DECODER = cli.DEFAULT_DECODER
 FIXTURES = cli.DEFAULT_DEMO_FIXTURES
+DATA = Path(__file__).parent / "data"
 
 needs_decoder = pytest.mark.skipif(
     not DECODER.is_file() or not (FIXTURES / "damaged_a.wav").is_file(),
@@ -30,7 +31,8 @@ def test_quadbike_absent_records_reason_and_runs_nothing():
     assert "runs" not in result
 
 
-def test_parse_lsblocks_counts_rows_without_error_codes():
+def test_parse_lsblocks_csw_rows_without_error_codes():
+    # CSW-input row layout from the Quadbike manual (``[sample]`` location).
     stdout = "\n".join([
         "Decoded 6672 bytes.",
         '#  0 [  410382]     "FOOTER"      900      900    0  100 ffffffff',
@@ -42,6 +44,29 @@ def test_parse_lsblocks_counts_rows_without_error_codes():
     assert parsed["block_rows"] == 3
     assert parsed["rows_without_errors"] == 2
     assert parsed["metrics"] == {"errors": 1, "blocks": 3}
+
+
+def test_parse_lsblocks_real_output_failed_bitflip():
+    # Real ``php -f lsblocks.php +r`` (v1.2) output on Quadbike 2.0.5's TIBET
+    # transcription of fixtures/starmap/damaged_a.wav (task 26.2).
+    parsed = parse_lsblocks((DATA / "lsblocks-1.2_r_damaged_a.txt").read_text())
+    assert parsed["lsblocks_version"] == "v1.2"
+    assert parsed["block_rows"] == 8
+    assert parsed["rows_without_errors"] == 7
+    assert parsed["repair_attempted"] == [6]
+    assert parsed["repair_succeeded"] == []
+    assert parsed["recovered_after_repair"] == 7
+    assert parsed["metrics"] == {"errors": 1, "blocks": 8}
+
+
+def test_parse_lsblocks_real_output_successful_bitflip():
+    # Real lsblocks v1.2 ``+r`` output on the damaged_a TIBET with one of the two
+    # block-6 bit errors undone, leaving a single-bit error (task 26.2).
+    parsed = parse_lsblocks((DATA / "lsblocks-1.2_r_single_flip.txt").read_text())
+    assert parsed["rows_without_errors"] == 7
+    assert parsed["repair_attempted"] == [6]
+    assert parsed["repair_succeeded"] == [6]
+    assert parsed["recovered_after_repair"] == 8
 
 
 @needs_decoder

@@ -79,7 +79,7 @@ By default this overwrites the tracked files in `fixtures/starmap/` (`clean.wav`
 ```
 
 ```
-502 passed, 1 warning in 30.86s
+504 passed, 1 warning in 39.42s
 ```
 
 The decoder-dependent tests need `build/decoder/ScanTape` from step 2. The warning is Starlette's deprecation notice about `httpx` in its test client. The property tests (Hypothesis) are in `tests/properties/` and run with fixed seeds.
@@ -149,6 +149,8 @@ The individual steps are also available (`.venv/bin/taperescue --help` lists all
 ### 6. Benchmark
 
 ```sh
+QUADBIKE_BIN=build/quadbike/src205/quadbike-2.0.5-rc7/src/quadbike \
+QUADBIKE_LSBLOCKS=build/quadbike/lsblocks.php \
 .venv/bin/taperescue benchmark
 ```
 
@@ -157,14 +159,17 @@ Inputs: generated STARMAP fixtures
 Best single capture          damaged_a.wav                  recovered 7 of 8, complete program: no
 Intact-block merge           damaged_a.wav, damaged_b.wav   recovered 7 of 8, complete program: no
 TapeRescue reconstruction    damaged_a.wav, damaged_b.wav   recovered 8 of 8, complete program: yes, matches reference: yes
-Quadbike lsblocks.php +r: not run (php is not on PATH; QUADBIKE_LSBLOCKS is not set; QUADBIKE_BIN is not set. …)
+Quadbike lsblocks.php +r     damaged_a.wav: 8 block rows, 7 without errors, 7 recovered after bit-flip repair
+Quadbike lsblocks.php +r     damaged_b.wav: 8 block rows, 7 without errors, 7 recovered after bit-flip repair
 wrote benchmarks/results.json
 wrote benchmarks/results.md
 ```
 
 This rewrites the tracked `benchmarks/results.json` and `benchmarks/results.md`; the rerun produced byte-identical files. Use `--out DIR` to write elsewhere.
 
-On the generated fixtures, the best single capture and the intact-block merge each recover 7 of 8 blocks, and TapeRescue recovers 8 of 8 with a payload equal to the reference. The Quadbike `lsblocks.php +r` comparison has not run: PHP and the libsndfile headers are not installed on the development machine, and `lsblocks.php` reads CSW or TIBET files, not WAV, so a Quadbike build is also needed to transcribe the fixtures first. No Quadbike result is claimed. The setup to run it is in pending item P4.
+On the generated fixtures, the best single capture and the intact-block merge each recover 7 of 8 blocks, and TapeRescue recovers 8 of 8 with a payload equal to the reference. Quadbike 2.0.5 with `lsblocks.php` v1.2 `+r` recovers 7 of 8 blocks from each damaged capture. Block 6 fails its data CRC in both, and the single-bit-flip repair fails because each capture has two bit errors in that block. Quadbike works on one capture at a time, so it cannot combine the two.
+
+The Quadbike rows depend on a local Quadbike build, which TapeRescue does not ship. `lsblocks.php` reads CSW or TIBET files, not WAV, so the benchmark first transcribes each WAV with the Quadbike executable. To build it, install `php-cli` and `libsndfile1-dev`, download `quadbike-2.0.5-rc7.zip` and `lsblocks-1.2.php.txt` from <https://beebstuff.uk/f/acorn/quadbike/> into `build/quadbike/` (saving the script as `lsblocks.php`), unzip the release into `build/quadbike/src205/`, and run `./build.sh linux gcc release` in its `src/` directory. Without `QUADBIKE_BIN` and `QUADBIKE_LSBLOCKS`, the benchmark records `"ran": false` with the reason, and a run with the default `--out` replaces the tracked Quadbike rows with that reason. The commands and raw output are in `verification/entries/26.2.md`.
 
 ### 7. Web app (local)
 
@@ -189,7 +194,7 @@ Open <http://127.0.0.1:8000/>. The image builds the patched decoder and the UI i
 
 This follows the demo sequence on the bundled sample. It uses the web app from step 7 or 8.
 
-The web UI has been checked by component tests (`web/src/*.test.ts(x)`) and by `curl` against the API. No one has clicked through it in a real browser yet, so the steps below describe what the code and tests show, not an observed session.
+The web UI has been checked by component tests (`web/src/*.test.ts(x)`) and by `curl` against the API. No real-browser click-through of the TapeRescue UI (strips, block inspector, download dialog) has been confirmed, so steps 1–4 below describe what the code and tests show, not an observed session. Step 5 has been run by the user in JSBeeb (see below).
 
 1. **Block 6 fails in both recordings.** Click **Try sample**. The server runs the generated recordings `damaged_a.wav` and `damaged_b.wav` through recovery. The page shows one strip per recording and a merged result strip, one cell per block, each with a text label and a colour. In both recording strips, block 6 is labelled **CRC failed** and blocks 0–5 and 7 are **Intact**. Each recording was damaged by flipping one bit in each of two bytes of block 6 before modulation (offsets 17 and 143 in `damaged_a.wav`, 64 and 201 in `damaged_b.wav`; see `fixtures/starmap/damage.json`). Neither recording can load the program on its own.
 2. **Byte disagreements and the recorded CRC.** Click block 6. The block inspector shows each recording's read of the block (header CRC valid, data CRC invalid, 256 of 256 bytes), the recorded data CRC `0x8A59`, which both recordings carry, and the four offsets where the reads disagree:
@@ -203,20 +208,20 @@ The web UI has been checked by component tests (`web/src/*.test.ts(x)`) and by `
 
 3. **Reconstruction with provenance.** In the merged strip, block 6 is **Reconstructed** and the other blocks are **Intact**. The four disagreeing offsets give 2⁴ = 16 candidate payloads. All 16 were checked against `0x8A59` and exactly one matched, so the block is labelled `Reconstructed · CRC match` with the note "CRC match is evidence, not proof of the original bytes". Each chosen byte is the value from the recording that was not damaged at that offset. The recovered program's SHA-256 is `4ac213a0e014229eb195bd7380962b9f4528147838ec9f1f7cb00be165e06e3a`, equal to the reference in `fixtures/starmap/reference_payloads.json`.
 4. **Download the report and the tape image.** **Download report** saves the JSON report (inputs and their SHA-256, per-block status, sources, sample offsets, recorded CRCs, candidate counts and per-offset choices). **Download tape image** first opens a dialog listing block 6 as reconstructed; **Continue download** saves `STARMAP.uef`. When export is not permitted (for example with one recording), the button is disabled and the blocking blocks and reasons are shown, while the report can still be downloaded.
-5. **Run it in JSBeeb.** Open <https://bbc.xania.org/>, load `STARMAP.uef` with the emulator's local tape picker (the file stays on your machine), type `*TAPE`, press Return, then type `CHAIN "STARMAP"` and press Return. STARMAP needs the bytes of block 6 to run to completion. **This has not been verified yet**: no one has loaded the clean or the recovered image into JSBeeb (pending items P1 and P2). The recovered image is byte-identical to the image exported from the clean recording, and both pass the independent UEF reader check, but whether the star map draws has not been observed.
+5. **Run it in JSBeeb.** Open <https://bbc.xania.org/>, load `STARMAP.uef` with the emulator's local tape picker (the file stays on your machine), type `*TAPE`, press Return, then type `CHAIN "STARMAP"` and press Return. STARMAP needs the bytes of block 6 to run to completion. On 2026-11-23 the user ran this step and posted a screenshot of JSBeeb (items P1 and P2). It shows the finished star map: the title, "240 stars plotted", the four labelled constellations drawn by `PROCconstellations` (which is in block 6), the moon, the hills and the compass letters, and the BASIC `>` prompt with no error message. The screenshot does not show which `.uef` file was loaded or the tape loading messages. The user had been asked to load the recovered `STARMAP.uef` from **Try sample**, and that image is byte-identical to the image exported from the clean recording (SHA-256 `e7041f16…2045`). The screenshot shows that the loaded program ran to completion. The CRC match itself is still evidence, not proof of the original bytes. The cross-check against `STARMAP.bas` is in `verification/entries/26.1.md`.
 
 Without a browser, `.venv/bin/taperescue demo` (step 5) prints the same sequence.
 
 ## Status and pending items
 
-The automated checks above pass. The following external or manual steps have not been performed, and no result is claimed for any of them. Each is tracked with its steps and an empty evidence field in [`verification/pending.md`](verification/pending.md).
+The automated checks above pass. The external and manual steps are tracked with their steps and evidence fields in [`verification/pending.md`](verification/pending.md). P1 and P2 have user-supplied evidence. P3, P5 and P6 have not been performed, and no result is claimed for them.
 
 | Item | Step | Status |
 | --- | --- | --- |
-| P1 | Run the `.uef` exported from the clean fixture in JSBeeb | Pending |
-| P2 | Run the `.uef` recovered from the two damaged fixtures in JSBeeb | Pending |
+| P1 | Run the `.uef` exported from the clean fixture in JSBeeb | Done, covered by the P2 run: the clean and recovered images are byte-identical |
+| P2 | Run the `.uef` recovered from the two damaged fixtures in JSBeeb | Done (manual, user-run): screenshot of the finished star map with no error. The loaded file name is not visible in it |
 | P3 | Test with permission-cleared real archival captures | Pending |
-| P4 | Quadbike `lsblocks.php +r` comparison (not runnable locally; reason above) | Pending |
+| P4 | Quadbike `lsblocks.php +r` comparison | Done: Quadbike 2.0.5 and lsblocks v1.2 built and run locally; 7 of 8 blocks per damaged capture, block 6 not repaired |
 | P5 | Deploy the container to a functional public URL (it has only been run locally) | Pending |
 | P6 | Publish the YouTube demo | Pending |
 

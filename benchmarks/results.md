@@ -15,9 +15,12 @@ Engine `taperescue-merge/1.0.0`, candidate cap 64, decoder AtomTapeUtils ScanTap
 
 ## Quadbike `lsblocks.php +r`
 
-Not run: php is not on PATH; QUADBIKE_LSBLOCKS is not set; QUADBIKE_BIN is not set. lsblocks.php reads CSW or TIBET files, not WAV, so the comparison needs php, lsblocks.php and the Quadbike transcriber.
+Run with Quadbike 2.0.5, lsblocks.php v1.2. Each WAV is transcribed to TIBET by Quadbike, then listed by `lsblocks.php +r`. The table and the metrics line are printed before the `+r` bit-flip repair runs.
 
-No Quadbike result is claimed. The comparison is listed as pending item P4 in `verification/pending.md`.
+| Capture | Ran | Block rows | Rows without errors | Bit-flip repair | Recovered after repair | Metrics line |
+| --- | --- | --- | --- | --- | --- | --- |
+| damaged_a.wav | yes (exit 0) | 8 | 7 | block 6 failed | 7 of 8 | Errors 1, Blocks 8 |
+| damaged_b.wav | yes (exit 0) | 8 | 7 | block 6 failed | 7 of 8 | Errors 1, Blocks 8 |
 
 ## Contribution
 

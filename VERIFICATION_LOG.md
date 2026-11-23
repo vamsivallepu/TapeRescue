@@ -2950,31 +2950,283 @@ The image was not rebuilt, because it already matches the working tree.
 
 None for the automated checks. The external steps P1–P6 remain pending in `verification/pending.md`, and open issue 5 remains open.
 
+## Task 26.1: Record the user's JSBeeb run of STARMAP (P1, P2)
+Requirements: 22.2, 22.3
+### What was supplied
+The user was given these steps: start the container, click **Try sample**, click **Download tape image** (which saves `STARMAP.uef`, the image recovered from `damaged_a.wav` and `damaged_b.wav`), open JSBeeb at <https://bbc.xania.org/>, load the file with the local tape picker, type `*TAPE`, then `CHAIN "STARMAP"`. The user then posted one screenshot in the Kiro chat on 2026-11-23 (`date -I`) with the words "Here is the screenshot". The image is not in the repository yet. It is to be saved as `verification/evidence/jsbeeb-starmap.png`; `verification/evidence/README.md` records that it has not been added. The description of the screenshot below was supplied by the orchestrator, which could see it.
+
+- JSBeeb UI: menus BBC B, Media, Reset, State, Debug, More. Status bar: "drive 0/2 Elite", "drive 1/3 empty", "cassette motor STARMAP", caps lock and shift lock LEDs, "virtual MHz".
+- Emulated screen: title "STARMAP" at top centre; "The northern winter sky" (cyan); "240 stars plotted" (purple/blue); constellation labels Plough, Cassiopeia, Cygnus and Orion, each with cyan connecting lines between white "+" stars; a crescent moon top right; a scattered band of small blue/purple dots across the middle; a short white diagonal line top left; white "+" stars across the sky; purple hills along the bottom; the compass letters W, N and E along the bottom edge; a BASIC prompt `>_` at the top left.
+- No error message ("Data?", "Block?", "Bad program", "No such variable" or any other) is visible.
+
+Not shown and not stated by the user: which `.uef` file was loaded, its SHA-256, the tape load progress and the block-by-block loading messages, the browser used, and whether the web UI steps (strips, block inspector, the reconstructed-block confirmation dialog) were followed. "drive 0/2 Elite" is JSBeeb's default disc and plays no part in a cassette load. The "STARMAP" text beside the cassette indicator does not identify the file either: `STARMAP` is the cassette filename inside both the clean and the recovered image.
+### Cross-check against `fixtures/starmap/STARMAP.bas`
+Line offsets come from a throwaway script, `/tmp/t261_map.py`. It rebuilds the program with `build_program` from `STARMAP.bas`, asserts that it equals the concatenated `hex` payloads in `fixtures/starmap/reference_payloads.json` (it does: 2025 bytes, SHA-256 `4ac213a0…6e3a`), and prints `program_lines()` with the block each line occupies (block = offset // 256). The palette comes from lines 50 and 60: `VDU 19,1,4,0,0,0` maps logical colour 1 to blue and `VDU 19,2,6,0,0,0` maps logical colour 2 to cyan. Logical colour 3 keeps the MODE 1 default, white.
+
+| Visible on screen | Source line(s) | Program offsets / block | Match |
+| --- | --- | --- | --- |
+| "STARMAP" at top centre | 1910 `COLOUR 3:PRINT TAB(16,0);"STARMAP"` (columns 16–22 of 40, row 0) | 1408–1433, block 5 | Yes |
+| "The northern winter sky" in cyan | 1920 `COLOUR 2:PRINT TAB(7,1);"The northern winter sky"`; colour 2 is cyan (line 60) | 1434–1474, block 5 | Yes |
+| "240 stars plotted" in purple/blue | 1930 `COLOUR 1:PRINT TAB(9,2);shown;" stars plotted"`; colour 1 is blue (line 50). `shown` is set to 0 at line 80 and incremented only at line 1090, once per star in `PROCstars(n)`, which line 100 calls with n=240 | 1475–1512, block 5; 165–175 and 194–208, block 0; 535–551, block 2 | Yes. 240 is the expected count |
+| Labels Plough, Cassiopeia, Orion, Cygnus | 3070 `VDU 5:MOVE px+16,py-16:PRINT nm$:VDU 4` in `PROCconstellations`; names read from `DATA` lines 4010–4040; count from line 4000 `DATA 4` | 3070: 1649–1679, block 6. 4000: 1772–1778, block 6. 4010: 1779–1848, blocks 6–7. 4020–4040: 1849–2022, block 7 | Yes. All four names in the DATA lines are on screen, and there are no others |
+| Cyan connecting lines | 3100 `GCOL 0,2:MOVE px,py:DRAW x,y` | 1702–1724, block 6 | Yes |
+| White "+" stars at the constellation points | 3060 `GCOL 0,3:PROCbig(px,py)` and 3110 `GCOL 0,3:PROCbig(x,y)`; `PROCbig` (1210–1240) draws an 8-unit cross | 3060: 1628–1648, 3110: 1725–1743, block 6; `PROCbig`: 598–655, block 2 | Yes |
+| White "+" stars across the sky | 1060 selects `GCOL 0,3` when b=10, and 1080 `IF b=10 THEN PROCbig(x,y)` | 460–534, blocks 1–2 | Yes |
+| Band of small blue/purple dots across the middle | `PROCmilkyway(360)` (line 90; 1310–1390): `GCOL 0,1`, then `PLOT 69` points about `y=260+x*0.5`. Dim stars from `PROCstars` (b<6, `GCOL 0,1`) are also blue dots | blocks 2–3 | Yes. The description gives no slope or position, so the diagonal shape is not checked |
+| Crescent moon top right | 110 `PROCmoon(1060,840,56,3)` (white disc), then 120 `PROCmoon(1084,858,50,0)` (black disc offset up and right), giving a crescent. `PROCmoon` is lines 1410–1500 | 209–256, blocks 0–1; 856–1036, blocks 3–4 | Yes. The description does not give the colour |
+| Short white diagonal line top left | 130 `PROCmeteor(300,940,90)`; 1620 `GCOL 0,3:MOVE x,y:DRAW x-l,y-l/2` (white, from (300,940) to (210,895)) | 257–279, block 1; 1088–1114, block 4 | Yes. The cyan tail from line 1630 is not mentioned in the description and is not claimed |
+| Purple hills along the bottom | `PROChorizon` (line 140; 1710–1790): `GCOL 0,1`, filled triangles (`PLOT 85`) up to `h=70+30*SIN(x/150)+RND(20)` | blocks 1, 4–5 | Yes, as a colour-naming difference only: the source uses logical colour 1 (blue). The same logical colour is used for "240 stars plotted" and the Milky Way dots, which the description calls purple/blue |
+| W, N, E along the bottom edge | 1820–1840 `MOVE 16,40:PRINT "W"`, `MOVE 624,40:PRINT "N"`, `MOVE 1232,40:PRINT "E"` after `GCOL 0,3:VDU 5` (1810) | 1317–1383, block 5 | Yes: left, centre and right at y=40 |
+| BASIC `>` prompt at top left, no error | 190 `END`. Line 1930's `PRINT` ends with a newline, so the text cursor is at row 3, column 0 when BASIC prints its prompt | 340–344, block 1 | Yes. The `_` after the prompt is not explained by the source: line 40 `VDU 23,1,0;0;0;0;` turns the text cursor off and the program never turns it back on. Whether BASIC II or the MOS shows a cursor again at the prompt was not checked. This does not affect the drawn content |
+
+No mismatch was found between the screen content and the source.
+
+`PROCconstellations` and block 6: `reference_payloads.json` gives `proc_constellations: {"block_no": 6, "first_offset": 1538, "last_offset": 1771}`, which agrees with task 6.8 and with the line table above (`DEF PROCconstellations` at 1538 through `ENDPROC` at 1767–1771). Block 6 spans program offsets 1536–1791. It also holds line 4000 `DATA 4` and the first 13 bytes of line 4010 (the Plough data). The labels, connecting lines and constellation crosses on screen are therefore produced by code that comes only from block 6, the block TapeRescue reconstructed.
+
+What the run says about the four reconstructed bytes (offsets within block 6, values from `fixtures/starmap/damage.json`; script `/tmp/t261_dmg.py` printed the line and the bytes of each). The behaviour with each damaged value follows from the program text. Images containing the damaged values were not run in JSBeeb.
+
+| Block 6 offset | Program offset | Line | Original (chosen) | Damaged value | Effect of the damaged value | Screenshot consistent with the chosen value? |
+| --- | --- | --- | --- | --- | --- | --- |
+| 17 | 1553 | 3000 `DEF PROCconstellations` | 0x61 `a` | 0x65 `e` (A) | The definition becomes `DEF PROCconstelletions`. The call on line 150 finds no matching DEF, so BASIC stops with "No such FN/PROC" before any constellation is drawn | Yes: constellations drawn, no error |
+| 64 | 1600 | 3040 `FOR k=1 TO c` (low byte of the line number) | 0xE0 (line 3040) | 0xE1 (B), which makes it line 3041 | Line 3041 still sorts between 3030 and 3050, and nothing refers to it by number, so the program would run the same | Cannot tell: the screen would look the same with either value |
+| 143 | 1679 | 3070, the last byte, `4` of `VDU 4` | 0x34 `4` | 0x14 (A), a control code | The `VDU` argument is no longer a valid expression, so BASIC is expected to stop with an error the first time line 3070 runs, after the label "Plough" is printed. This was not tested, and the exact error message was not checked | Yes: all four labels drawn, no error |
+| 201 | 1737 | 3110 `GCOL 0,3:PROCbig(x,y)` | 0x69 `i` | 0x29 `)` (B) | The call becomes `PROCb)g(x,y)`. There is no `DEF PROCb`, so BASIC stops with "No such FN/PROC" after the first connecting line | Yes: all constellations complete, no error |
+
+So the screenshot is consistent with the chosen values at offsets 17, 143 and 201 and gives no information about offset 64. This is consistent with the CRC-matching reconstruction, but it does not prove every byte. The CRC match remains evidence, not proof of the original bytes.
+### Edits made
+- `verification/pending.md`:
+  - P2: status `done (manual, user-run)`. The evidence names the screenshot posted on 2026-11-23 and its future path `verification/evidence/jsbeeb-starmap.png`, describes what it shows, and summarises the cross-check. It states plainly that the loaded file name is not visible, that the user was asked to load the recovered `STARMAP.uef` from **Try sample**, and that the web UI click-through is not covered.
+  - P1: status `done (covered by the P2 run; identical image bytes)`. The evidence cites SHA-256 `e7041f167d9e33e192604e0eeca7f4400d4af3a98932bea43eb9d6c3de1a2045` for both images, the `cmp` in task 18 and the `sha256sum` in task 23.4. No separate run of `clean.uef` was made.
+  - P3–P6: unchanged, still `pending` with empty evidence.
+- `verification/evidence/README.md` (new): says `jsbeeb-starmap.png` is to be added by the user. No image was created.
+- `README.md`:
+  - In the judge walkthrough introduction, "No one has clicked through it in a real browser yet" was replaced with: no real-browser click-through of the TapeRescue UI has been confirmed, so steps 1–4 describe what the code and tests show, and step 5 has been run by the user.
+  - Walkthrough step 5: the "has not been verified yet" text was replaced with what the screenshot shows, what it does not show (the file loaded, the loading messages), the byte-identical images, and "CRC match is evidence, not proof of the original bytes".
+  - "Status and pending items": the introduction now says P1 and P2 have user-supplied evidence and P3–P6 have not been performed. The P1 and P2 rows were updated. The P3–P6 rows still say `Pending`.
+- `tests/smoke/test_scaffold.py::test_pending_items_cover_every_external_step`: this test required every item to be `- Status: pending` with an empty `- Evidence:`, which is no longer true for P1 and P2. It now checks Requirement 22.3 directly: each item has a status and an evidence line, and an item whose evidence is empty must have status `pending`. The six expected item titles are still checked.
+- Historical entries `verification/entries/10.md` (line 99: "STARMAP runs in JSBeeb from the clean `.uef`: Not verified (pending manual step P1)") and `verification/entries/18.md` (lines 134, 171 and 191: P2 not verified) were read and left unchanged. They were correct when written. This entry supersedes them for P1 and P2.
+### Commands and results
+| Command | Result |
+| --- | --- |
+| `date -I` | `2026-11-23` |
+| `.venv/bin/python /tmp/t261_map.py` | Rebuilt program equals the reference payloads (2025 bytes, SHA-256 `4ac213a0…6e3a`). Line and block table as above |
+| `.venv/bin/python /tmp/t261_dmg.py` | Block 6 offsets 17, 64, 143, 201 fall in lines 3000, 3040, 3070, 3110, with original bytes 0x61, 0xE0, 0x34, 0x69 |
+| `grep -nE '^## P[0-9]\|^- Status:\|^- Evidence:' verification/pending.md` | P1 `done (covered by the P2 run; identical image bytes)`, P2 `done (manual, user-run)`, both with evidence. P3–P6 `pending` with empty evidence |
+| `.venv/bin/python -m pytest -q tests/smoke` | `8 passed` |
+| `.venv/bin/python -m pytest -q` | `502 passed, 1 warning in 36.37s` (the warning is Starlette's `httpx` deprecation notice) |
+### What remains unverified
+- The screenshot file itself is not in the repository until the user saves it as `verification/evidence/jsbeeb-starmap.png`.
+- Which file was loaded: the screenshot does not show it, and the user did not state it. That it was the recovered `STARMAP.uef` rests on the instructions the user was given. Its SHA-256 at load time was not recorded, and neither was the browser.
+- The tape loading messages and block-by-block load were not observed.
+- The TapeRescue web UI click-through in a real browser (strips, block inspector, confirmation dialog) is not confirmed by this evidence.
+- The value at block 6 offset 64 is not checked by the run, because it only changes a line number.
+- The visible `_` cursor after the prompt is not explained by the source (see the table).
+- P3–P6 remain pending. `VERIFICATION_LOG.md` was not regenerated here; task 26.3 does that.
+### Blockers
+None.
+
+## Task 26.2: Build Quadbike and run the `lsblocks.php +r` comparison (P4)
+Requirements: 15.2, 15.3, 22.2
+### Changes
+- `taperescue/benchmark.py`:
+  - `parse_lsblocks` now matches the real lsblocks v1.2 row format. The 17.1 parser expected the CSW location `[%8d]` from the manual's sample and found 0 rows in real output. For TIBET input, lsblocks prints the location as `{ L%5d }` (TIBET line number), as in `lsblocks.php` line 703: `#  6 { L  619 }    "STARMAP" ffff0e00 ffff8023    6  100        0        DC`. The row pattern now accepts both forms. Error codes (`HC`, `DC`, `DI`) are read only from the text after the quoted file name.
+  - The `+r` repair runs after the table and the metrics line are printed (`lsblocks.php` lines 1435–1455), so those show the state before repair. The parser now also records `repair_attempted` (from `Block #N: bad data CRC`), `repair_succeeded` (from `BITFLIP "NAME", block ID N:`), `recovered_after_repair` (rows with no error, plus rows whose only error was `DC` and whose repair succeeded), and `lsblocks_version`. Each run also records `quadbike_version`, taken from Quadbike's first output line.
+  - `render_markdown` gives the Quadbike section a line with the versions, plus "Bit-flip repair" and "Recovered after repair" columns. `taperescue/cli.py` adds "N recovered after bit-flip repair" to the printed Quadbike line.
+  - The invocations did not change. Both match the built 2.0.5 CLI: `quadbike [options] <input file>` with `-t <filename>  output TIBET filename`, and `php -f lsblocks.php [options] <CSW/TIBET/TIBETZ file>` with `+r  attempt bad-CRC repair by flipping bits`. Both still run with argument lists and `shell=False`.
+- `tests/test_benchmark.py`: the CSW-format test is kept. Two tests are added that parse real lsblocks output stored in `tests/data/`:
+  - `lsblocks-1.2_r_damaged_a.txt` (SHA-256 `bd50ce78…0069`): `+r` on the TIBET transcription of `damaged_a.wav`, where the bit-flip repair fails.
+  - `lsblocks-1.2_r_single_flip.txt` (SHA-256 `c4d0df68…ba7b`): `+r` on the same TIBET with one of the two block-6 bit errors undone, where the repair succeeds.
+  - Both files are output text only. They contain no lsblocks code and no absolute paths.
+- `benchmarks/results.json`, `benchmarks/results.md`: regenerated with Quadbike enabled. They now depend on the local Quadbike 2.0.5 build. A run without `QUADBIKE_BIN` and `QUADBIKE_LSBLOCKS` writes `"ran": false` with a reason in place of the Quadbike rows.
+- `verification/pending.md` P4: Status `done (task 26.2, run locally)`, with evidence filled in.
+- `README.md`: the benchmark section shows the command with the env vars and the real output, states the Quadbike result, and gives the build steps. P4 in the status table is now Done.
+- `THIRD_PARTY_NOTICES.md` section 3: new "Quadbike (optional benchmark comparison)" entry. Quadbike 2.0.5 and `lsblocks.php` v1.2 are GPL-2.0-or-later, downloaded into the git-ignored `build/quadbike/`, and not committed, bundled, linked or shipped in the image (`.dockerignore` excludes `build`).
+
+### Evidence
+Run from `/home/vamsik/TapeRescue`. Raw outputs are kept in `/tmp/qb/` (not tracked).
+
+1. Environment:
+   ```
+   $ php --version         -> PHP 8.3.6 (cli) (built: Nov 18 2026 23:42:07) (NTS)
+   $ dpkg -l | grep -i sndfile
+   ii  libsndfile1:amd64      1.2.2-1ubuntu5.24.04.1  ...
+   ii  libsndfile1-dev:amd64  1.2.2-1ubuntu5.24.04.1  ...
+   $ ls -l /usr/include/sndfile.h -> -rw-r--r-- 1 root root 29558 Feb 13  2025 /usr/include/sndfile.h
+   $ pkg-config --modversion sndfile -> 1.2.2
+   ```
+   `libflac-dev` 1.4.3 and `zlib1g-dev` 1.3 were also installed (build.sh links `-lsndfile -lz -lFLAC`). The compiler was gcc 13.3.0. No `sudo` was used.
+2. Download. The first `curl` was blocked by the agent's safety policy. The user allowed it, and the retry downloaded both files into `build/quadbike/`:
+   - `https://beebstuff.uk/f/acorn/quadbike/releases/2.0.5/quadbike-2.0.5-rc7.zip`: SHA-256 `1c6931bb05c7445c543fcd0d9eb1b3b0fda808b802af3ba37b5f5433be979920`, equal to `releases/2.0.5/sha256.txt`.
+   - `https://beebstuff.uk/f/acorn/quadbike/scripts/lsblocks-1.2.php.txt`: SHA-256 `954928818162ae961135b3f8d4e51cae3111d5972464c043425b0c00dc18ea3e`, equal to the `lsblocks-1.2.php` line in `scripts/sha256.txt`. It is copied to `build/quadbike/lsblocks.php`.
+   - The releases index lists 2.0.1 to 2.0.5, and 2.0.5 is the latest. The zip's `php/` directory holds only `lsblocks-1.1.php`, so v1.2 comes from `scripts/`.
+   - Licence: the zip has no separate licence file. `src/quadbike.c` and `lsblocks.php` (lines 5–10) both carry "Copyright (C) 2026 'Diminished'" and the GNU GPL "version 2 of the License, or (at your option) any later version" notice.
+3. Build: `cd build/quadbike/src205/quadbike-2.0.5-rc7/src && bash ./build.sh linux gcc release` exits 0. `/tmp/qb_build.log` has 31 lines: 30 `gcc -DQB_LINUX -DQB_VECTORS_GCC_CLANG -DQB_VECSIZE=16 -Wall -Wextra -Wshadow -O3 -g0 -c ...` compile lines, the link line `gcc -o quadbike ... -lm -lsndfile -lz -lFLAC`, and `strip quadbike`. There were 0 warnings and 0 errors. The binary is an ELF 64-bit x86-64 PIE, 150168 bytes, SHA-256 `ba068aaeee1b40dd3600f0e07f5f882080aa92dba1bca2dc12d03f87be42ce8c`. Running `quadbike` with no arguments prints `Quadbike 2.0.5, by 'Diminished'. 9th May 2026.` and its usage. `php -f lsblocks.php` prints `lsblocks.php, v1.2` and its usage.
+4. Manual runs on each fixture (`quadbike -t <n>.tibet fixtures/starmap/<n>.wav`, then `php -f build/quadbike/lsblocks.php +r <n>.tibet`). Every command exited 0, and Quadbike ended with `Wrote TIBET file (...): <n>.tibet` and `OK.`
+   - `clean.wav`: 8 rows `#  0` to `#  7` with empty `hE`/`dE` columns, and `M: Metrics|Errors|0|Blocks|8`. No repair is attempted.
+   - `damaged_a.wav`:
+     ```
+     #  5 { L  520 }    "STARMAP" ffff0e00 ffff8023    5  100        0          
+     #  6 { L  619 }    "STARMAP" ffff0e00 ffff8023    6  100        0        DC
+       > [   N/A  ] Data CRC mismatch
+     #  7 { L  718 }    "STARMAP" ffff0e00 ffff8023    7   e9        0 F        
+     M: Metrics|Errors|1|Blocks|8
+     Block #6: bad data CRC: read 8a59, computed c6f8.
+      Try bitflip ...
+     Bitflip failed.
+     ```
+   - `damaged_b.wav`: the same table (only block 6 is `DC`, metrics `Errors|1|Blocks|8`), then `Block #6: bad data CRC: read 8a59, computed 66b5.`, ` Try bitflip ...`, `Bitflip failed.`
+   - `diff clean.tibet damaged_a.tibet` differs only in the command comment on line 2 and in two data lines, 632 and 671, both inside block 6. Quadbike transcribed exactly the two injected bit errors.
+   - Single-error check: I copied `damaged_a.tibet`, restored line 671 from `clean.tibet`, and ran `+r` on the result. The repair now succeeds: `{ L  633 } BITFLIP "STARMAP", block ID 6: flip byte 17 (&65 -> &61), bit 2 (4->0)`. Offset 17 is the `damaged_a` damage offset in block 6. This TIBET file was edited by hand, so it shows that the `+r` repair path works. It is not a fixture result.
+5. Benchmark: `QUADBIKE_BIN=$PWD/build/quadbike/src205/quadbike-2.0.5-rc7/src/quadbike QUADBIKE_LSBLOCKS=$PWD/build/quadbike/lsblocks.php .venv/bin/taperescue benchmark --out /tmp/qb/bench` exits 0.
+   - With the 17.1 parser it printed `damaged_a.wav: 0 block rows, 0 without errors`, which is what led to the parser fix. After the fix:
+     ```
+     Inputs: generated STARMAP fixtures
+     Best single capture          damaged_a.wav                  recovered 7 of 8, complete program: no
+     Intact-block merge           damaged_a.wav, damaged_b.wav   recovered 7 of 8, complete program: no
+     TapeRescue reconstruction    damaged_a.wav, damaged_b.wav   recovered 8 of 8, complete program: yes, matches reference: yes
+     Quadbike lsblocks.php +r     damaged_a.wav: 8 block rows, 7 without errors, 7 recovered after bit-flip repair
+     Quadbike lsblocks.php +r     damaged_b.wav: 8 block rows, 7 without errors, 7 recovered after bit-flip repair
+     ```
+   - A second run to `/tmp/qb/bench2` gives files that `cmp` finds identical. `grep -c /home` on both result files gives 0.
+   - The same command with the default `--out` wrote the tracked files, identical to `/tmp/qb/bench`: `benchmarks/results.json` SHA-256 `b6a1f54aa455fa344c3fe43c283848fdbce26025bda1531621c0fb6536f6956b`, `benchmarks/results.md` SHA-256 `08ad8a1c3849ecfd2658d82f26052db94ac06466ae68d83edd645ead1ba4aae1`.
+   - Fixture digests at the time of the run: `damaged_a.wav` `2e09d3ce…4c0b`, `damaged_b.wav` `83a0ab04…d0a0`, `clean.wav` `77fef8d5…7d117`.
+   - The Quadbike table in `benchmarks/results.md`:
+
+     | Capture | Ran | Block rows | Rows without errors | Bit-flip repair | Recovered after repair | Metrics line |
+     | --- | --- | --- | --- | --- | --- | --- |
+     | damaged_a.wav | yes (exit 0) | 8 | 7 | block 6 failed | 7 of 8 | Errors 1, Blocks 8 |
+     | damaged_b.wav | yes (exit 0) | 8 | 7 | block 6 failed | 7 of 8 | Errors 1, Blocks 8 |
+6. Tests: `.venv/bin/python -m pytest tests/test_benchmark.py tests/test_cli.py tests/smoke -q` gives `70 passed`. `.venv/bin/python -m pytest -q` gives `504 passed, 1 warning` (a Starlette deprecation warning about httpx in `fastapi/testclient.py`).
+
+### Result
+Quadbike 2.0.5 with `lsblocks.php` v1.2 `+r` recovers 7 of 8 blocks (0–5 and 7) from `damaged_a.wav` and 7 of 8 from `damaged_b.wav`. Block 6 fails its data CRC in both, and the single-bit-flip repair fails in both, because each capture has two bit errors in block 6. That was the expected outcome, and the run confirmed it. Quadbike and lsblocks process one capture at a time, so neither tool combines the two recordings. TapeRescue recovers 8 of 8 from the same pair.
+
+### Not claimed
+- The benchmark ran Quadbike only with its defaults (`-s freq`, `-p auto`, no `-e` error-correction policy). Other Quadbike options were not tried.
+- `recovered_after_repair` is derived from lsblocks' printed messages. The repaired bytes are not checked against the reference payload, because lsblocks `+r` without `+x` prints only the flipped byte and does not write the data. In the single-error check, the reported flip (`&65 -> &61` at byte 17) matches the damage offset recorded for `damaged_a`.
+- lsblocks' `#N` is its row index. On these fixtures it equals the block number column (`num`), but this is not guaranteed in general.
+- The CSW-format row (`[%8d]`) is supported from the source's format string and the manual sample. It was not exercised on real CSW output, because the benchmark writes TIBET.
+- The tracked results depend on a local build that is not in the repository. Their Quadbike rows are reproducible only after repeating the download and build steps above.
+
+## Task 26.3: Checkpoint: manual verification follow-up
+
+Requirements: 22.1
+
+Run from `/home/vamsik/TapeRescue` on 2026-11-23 (`date -I`) with Python 3.12.3 (`.venv`), Node v22.19.0, npm 10.9.3, the decoder at `build/decoder/ScanTape`, and the Quadbike 2.0.5 build and `lsblocks.php` v1.2 from task 26.2. Every check below was re-run in this task. Files changed: this entry and the regenerated `VERIFICATION_LOG.md`. No code, test, README or `pending.md` change was made. Nothing was installed, committed or pushed. Scratch output is in `/tmp/qb26/` and `/tmp/qb26-noenv/` (not tracked).
+
+### (a) Test runs
+
+| Command | Result |
+| --- | --- |
+| `.venv/bin/python -m pytest -q -rs` | `504 passed, 1 warning in 39.24s`. No skips, so every decoder-dependent test ran. The warning is Starlette's notice that `httpx` with `starlette.testclient` is deprecated. 504 = 502 (task 25.5) + the 2 real-lsblocks-output tests added to `tests/test_benchmark.py` in task 26.2 |
+| `cd web && npm test` (`vitest --run`, vitest 5.1.1) | `Test Files 5 passed (5)`, `Tests 27 passed (27)`, 2.44 s |
+| Hook command, read from `.kiro/hooks/recovery-tests.json` (`hooks[0].action.command` = `.venv/bin/python -m pytest tests/engine tests/decoder_adapter tests/integration tests/properties -q`) and run with `bash -c`, `{"hook_event_name":"PostFileSave"}` on STDIN | `191 passed in 24.72s`, exit 0, 25 s wall time |
+
+### (b) Benchmark with Quadbike
+
+| Command | Result |
+| --- | --- |
+| `QUADBIKE_BIN=$PWD/build/quadbike/src205/quadbike-2.0.5-rc7/src/quadbike QUADBIKE_LSBLOCKS=$PWD/build/quadbike/lsblocks.php .venv/bin/taperescue benchmark --out /tmp/qb26` | Exit 0. Printed the same five result lines as task 26.2: best single capture 7 of 8, intact-block merge 7 of 8, TapeRescue 8 of 8 matching the reference, and `Quadbike lsblocks.php +r     damaged_a.wav: 8 block rows, 7 without errors, 7 recovered after bit-flip repair` (the same for `damaged_b.wav`) |
+| `cmp benchmarks/results.json /tmp/qb26/results.json`; `cmp benchmarks/results.md /tmp/qb26/results.md` | Both identical. SHA-256 `b6a1f54aa455fa344c3fe43c283848fdbce26025bda1531621c0fb6536f6956b` (`results.json`) and `08ad8a1c3849ecfd2658d82f26052db94ac06466ae68d83edd645ead1ba4aae1` (`results.md`), the values recorded in task 26.2 |
+| `grep -c /home /tmp/qb26/results.json /tmp/qb26/results.md` | `0` and `0`: no absolute paths in the output |
+| `env -u QUADBIKE_BIN -u QUADBIKE_LSBLOCKS .venv/bin/taperescue benchmark --out /tmp/qb26-noenv` | Exit 0. Prints `Quadbike lsblocks.php +r: not run (QUADBIKE_LSBLOCKS is not set; QUADBIKE_BIN is not set. ...)`. `results.json` has `"quadbike": {"ran": false, "reason": "..."}`, and `diff` against the tracked `results.md` shows the Quadbike version line and the two-row table replaced by "Not run: ..." and "No Quadbike result is claimed. The comparison is listed as pending item P4 in `verification/pending.md`." |
+
+Known caveat: running `taperescue benchmark` with the default `--out` and without `QUADBIKE_BIN` and `QUADBIKE_LSBLOCKS` overwrites the tracked `benchmarks/results.json` and `benchmarks/results.md` and drops the Quadbike rows. The tracked files then no longer match P4's evidence, and the "Not run" text points at P4 as pending although P4 is done. README line 172 already states that a run without the env vars replaces the tracked Quadbike rows. The tracked Quadbike rows can only be reproduced after repeating the task 26.2 download and build. This was observed, not changed.
+
+### (c) Quadbike files and git
+
+| Command | Result |
+| --- | --- |
+| `git check-ignore -v build/quadbike build/quadbike/lsblocks.php build/quadbike/src205/quadbike-2.0.5-rc7/src/quadbike` | All three ignored by `.gitignore:2:build/`, exit 0 |
+| `git ls-files build \| wc -l` | `0` files tracked under `build/` |
+| `git diff --cached --name-only` | Empty: nothing is staged |
+| `git ls-files --cached --others --exclude-standard \| grep -iE 'quadbike\|lsblocks\|\.tibet$\|\.zip$'` | Only `tests/data/lsblocks-1.2_r_damaged_a.txt` and `tests/data/lsblocks-1.2_r_single_flip.txt` (untracked, from task 26.2) |
+| Those two files: `sha256sum`, `wc -lc`, `grep -cE '<\?php\|function \|\$[a-z_]+ *='`, `grep -c /home` | `bd50ce78…0069` (26 lines, 1159 bytes) and `c4d0df68…ba7b` (26 lines, 1227 bytes), matching task 26.2. Both start `lsblocks.php, v1.2`. 0 PHP code matches and 0 absolute paths in each: they are output text, not lsblocks source |
+| `git ls-files --cached --others --exclude-standard -z \| xargs -0 file \| grep ELF` | No match: no executable is tracked or untracked outside ignored paths |
+
+`git status --porcelain=v1 --untracked-files=all` before this entry showed the uncommitted work of tasks 26.1 and 26.2 only: modified `.kiro/specs/tape-rescue/tasks.md`, `tasks.meta.json`, `README.md`, `THIRD_PARTY_NOTICES.md`, `benchmarks/results.json`, `benchmarks/results.md`, `taperescue/benchmark.py`, `taperescue/cli.py`, `tests/smoke/test_scaffold.py`, `tests/test_benchmark.py`, `verification/pending.md`; untracked `tests/data/lsblocks-1.2_r_*.txt` (2), `verification/entries/26.1.md`, `verification/entries/26.2.md`, `verification/evidence/README.md`. Nothing in that list is Quadbike source or a binary.
+
+### (d) Pending-item statuses against the evidence
+
+Checked with a Python script that reads each `## P<n>` section of `verification/pending.md`, its `- Status:` line and the text after `- Evidence:`, and searches the P2 and P4 sections for the required statements.
+
+| Item | Status in `pending.md` | Evidence | Agrees with recorded evidence |
+| --- | --- | --- | --- |
+| P1 | `done (covered by the P2 run; identical image bytes)` | 489 characters: no separate `clean.uef` run; clean and recovered images both SHA-256 `e7041f16…2045` (`cmp` in task 18, `sha256sum` in task 23.4) | Yes, matches `verification/entries/26.1.md` |
+| P2 | `done (manual, user-run)` | 484 characters plus sub-bullets. Contains: the screenshot posted on 2026-11-23, its future path `verification/evidence/jsbeeb-starmap.png` with "not yet in the repository", "which `.uef` file was loaded" under "Not shown by the screenshot", and "The web UI click-through ... is not covered by this evidence" | Yes. `ls verification/evidence/` lists only `README.md`, which says `jsbeeb-starmap.png` is not yet added. The screenshot file is still not in the repository |
+| P3 | `pending` | Empty | Yes |
+| P4 | `done (task 26.2, run locally)` | 1033 characters. Contains Quadbike 2.0.5, zip SHA-256 `1c6931bb…9920`, lsblocks v1.2 SHA-256 `95492881…ea3e`, `Bitflip failed.`, 7 of 8 per capture, and a reference to `verification/entries/26.2.md` | Yes, and (b) reproduced the result byte for byte |
+| P5 | `pending` | Empty | Yes |
+| P6 | `pending` | Empty | Yes |
+
+README "Status and pending items" (lines 215–226): the introduction says P1 and P2 have user-supplied evidence and P3 to P6 have not been performed and no result is claimed. The table has P1 Done (covered by P2, byte-identical images), P2 Done (manual, user-run; "The loaded file name is not visible in it"), P3 Pending, P4 Done (Quadbike 2.0.5 and lsblocks v1.2, 7 of 8 per capture, block 6 not repaired), P5 Pending, P6 Pending.
+
+The README introduction paragraph is partly out of date: it says P3 to P6 have not been performed, but P4 has been performed (task 26.2) and its table row says Done. The table and `pending.md` agree with each other; only that sentence disagrees. The README walkthrough (line 197) states that no real-browser click-through of the TapeRescue UI has been confirmed, and step 5 (line 211) states that the screenshot does not show which `.uef` was loaded. The README does not say that the screenshot file is not yet in the repository; it does not claim that it is.
+
+### (e) Verification log
+
+| Command | Result |
+| --- | --- |
+| Python script: parse `- [x]`, `- [ ]`, `- [-]` and optional `*` task lines in `tasks.md` and compare with `verification/entries/*.md` (run before writing this entry) | 58 completed tasks (leaf tasks plus tasks with an entry). Missing entries: none. Entries with no matching task: none. 26.3 in progress (this entry). Parent task 26 unchecked. 25 optional tasks not run |
+| `.venv/bin/python scripts/collect_verification.py` (after writing this entry) | `wrote /home/vamsik/TapeRescue/VERIFICATION_LOG.md`, exit 0 |
+
+### Open items found
+
+- README line 82 (step 4 expected output) still shows `502 passed, 1 warning in 30.86s`. The suite now gives `504 passed` because task 26.2 added two tests. Not changed here.
+- README line 217 says "P3 to P6 have not been performed", which contradicts the P4 row and `pending.md`. Not changed here.
+- The benchmark default-output caveat in (b).
+- The screenshot `verification/evidence/jsbeeb-starmap.png` is still to be saved by the user.
+- Open issue 5 from task 25.5 (hook firing on save not observed) is still open: no file under `taperescue/engine/` or `taperescue/decoder_adapter/` was saved in this task.
+
+### Not verified
+
+- P3, P5 and P6 have not been performed, and nothing is claimed for them.
+- The P1/P2 caveats from task 26.1 still apply: the loaded file and its SHA-256, the browser, and the tape loading messages are not recorded, the TapeRescue web UI click-through in a real browser is not confirmed, and block 6 offset 64 is not distinguished by the run.
+- The container was not rebuilt or smoke-tested in this task.
+
+### Blockers
+
+None. All automated checks passed and the benchmark output matched the tracked files. The two README wording issues above are documentation inconsistencies, not test failures.
+
+### README corrections
+
+Made after the checks above, to fix the two README wording issues listed under "Open items found". No other README line was changed.
+
+| README line | Before | After |
+| --- | --- | --- |
+| 82 (step 4 expected output) | `502 passed, 1 warning in 30.86s` | `504 passed, 1 warning in 39.42s` |
+| 217 (Status and pending items) | `P3 to P6 have not been performed, and no result is claimed for them.` | `P3, P5 and P6 have not been performed, and no result is claimed for them.` |
+
+The new line 82 is the summary line printed by `.venv/bin/python -m pytest -q`, re-run for this correction: `504 passed, 1 warning in 39.42s`, exit 0. The two open items for README lines 82 and 217 are resolved. The other open items above are unchanged.
+
 # Pending Items
 
 Manual or external steps that have not been performed. No result is claimed for any item until its evidence field is filled in with a link, file path, or log excerpt and its status is changed. Commands are run from the repository root with the virtual environment's `taperescue` (`.venv/bin/taperescue`) and the decoder built by `scripts/build_decoder.sh` at `build/decoder/ScanTape`.
 
 ## P1: Run the clean `.uef` in JSBeeb
 
-- Status: pending
+- Status: done (covered by the P2 run; identical image bytes)
 - Requirement: 22.2
 - Step:
   1. Produce the image: `taperescue recover fixtures/starmap/clean.wav --uef clean.uef`. Optionally check it with `taperescue verify-uef clean.uef --reference fixtures/starmap/reference_payloads.json`.
   2. Open JSBeeb at <https://bbc.xania.org/> (the link the web UI shows), and load `clean.uef` with the emulator's local tape picker. The file stays on the local machine.
   3. At the BASIC prompt type `*TAPE`, then `CHAIN "STARMAP"`, and confirm that the program loads and the star map draws to completion.
   4. Record the JSBeeb URL used, the browser, the SHA-256 of `clean.uef`, and a screenshot or screen recording of the finished star map.
-- Evidence:
+- Evidence: No separate run of `clean.uef` was made. The image exported from `clean.wav` and the image recovered from `damaged_a.wav` and `damaged_b.wav` are byte-identical: both have SHA-256 `e7041f167d9e33e192604e0eeca7f4400d4af3a98932bea43eb9d6c3de1a2045`, `cmp` found them identical in task 18 (`cmp /tmp/m2x/clean.uef /tmp/m2x/demo/STARMAP.uef`), and `sha256sum` gave the same digest for both in task 23.4. The P2 run therefore exercised the same bytes. See P2 and `verification/entries/26.1.md`.
 
 ## P2: Run the recovered `.uef` in JSBeeb
 
-- Status: pending
+- Status: done (manual, user-run)
 - Requirement: 22.2
 - Step:
   1. Produce the image from the two damaged fixtures: `taperescue demo`. It writes `demo-out/STARMAP.uef` and `demo-out/report.json` (`demo-out/` is git-ignored). The web app's **Try sample** then **Download tape image** gives the same image.
   2. Load `demo-out/STARMAP.uef` in JSBeeb at <https://bbc.xania.org/> with the local tape picker.
   3. Type `*TAPE`, then `CHAIN "STARMAP"`, and confirm that the star map draws to completion. STARMAP needs the bytes of block 6, the reconstructed block, to run to completion (Requirement 4.6).
   4. Record the JSBeeb URL used, the browser, the SHA-256 of `STARMAP.uef`, and a screenshot or screen recording of the finished star map.
-- Evidence:
+- Evidence: Screenshot posted by the user in the Kiro chat on 2026-11-23; to be saved as `verification/evidence/jsbeeb-starmap.png` (not yet in the repository). The user was asked to start the container, click **Try sample**, click **Download tape image**, load the downloaded `STARMAP.uef` (the recovered image) in JSBeeb at <https://bbc.xania.org/> with the local tape picker, then type `*TAPE` and `CHAIN "STARMAP"`. The user then posted the screenshot with the words "Here is the screenshot".
+  - What it shows: the JSBeeb UI (menus BBC B, Media, Reset, State, Debug, More; status bar "drive 0/2 Elite", "drive 1/3 empty", "cassette motor STARMAP"). On the emulated screen: the title "STARMAP" at top centre, "The northern winter sky" in cyan, "240 stars plotted" in blue/purple, the four constellations Plough, Cassiopeia, Cygnus and Orion with labels, cyan connecting lines and white "+" stars, a crescent moon top right, a band of small blue/purple dots across the middle, a short white diagonal line top left, white "+" stars across the sky, hills along the bottom, the compass letters W, N and E along the bottom edge, and the BASIC prompt `>` at the top left. No error message is visible.
+  - Cross-check against `fixtures/starmap/STARMAP.bas`: every visible text string and drawn element matches the source line that produces it, and the star count 240 matches `PROCstars(240)` (line 100). The constellation labels and lines are drawn by `PROCconstellations` (lines 3000–3150, program offsets 1538–1771), which lies entirely in block 6, the reconstructed block. If the damaged value from `damaged_a.wav` at block 6 offset 17 or from `damaged_b.wav` at offset 201 had been loaded, BASIC would have stopped with an error before the constellations were complete. No mismatch was found. The table is in `verification/entries/26.1.md`.
+  - Not shown by the screenshot: which `.uef` file was loaded, its SHA-256, the load progress and block-by-block loading messages, and the browser used. The user did not say which file was loaded or whether the web UI steps were followed; the claim that this was the recovered image rests on the instructions given, not on the screenshot. The run also cannot distinguish the value at block 6 offset 64, which is the low byte of the number of line 3040. The web UI click-through (block inspector, confirmation dialog) is not covered by this evidence.
 
 ## P3: Test with real archival captures
 
@@ -2988,12 +3240,12 @@ Manual or external steps that have not been performed. No result is claimed for 
 
 ## P4: Quadbike comparison (if not runnable locally)
 
-- Status: pending
+- Status: done (task 26.2, run locally)
 - Requirement: 15.3, 22.2
 - Step: Run Quadbike `lsblocks.php +r` on Damaged_Fixture_A and Damaged_Fixture_B and record the recovered block count. If it cannot be run, state why.
-- Why it has not run (task 17.1): `taperescue benchmark` recorded `quadbike: {"ran": false, "reason": "php is not on PATH; QUADBIKE_LSBLOCKS is not set; QUADBIKE_BIN is not set. ..."}` in `benchmarks/results.json`. On the development machine (Ubuntu 24.04) PHP is not installed (`command -v php` finds nothing; `apt-cache policy php-cli` shows `Installed: (none)`), and installing it needs `sudo`, which asks for a password, so it is a manual step. `lsblocks.php` also reads only CSW or TIBET files, not WAV (its usage line is `php -f lsblocks.php [options] <CSW/TIBET/TIBETZ file>`), so each fixture must first be transcribed by the Quadbike executable (`quadbike -t capture.tibet capture.wav`). Quadbike has no Linux binary; it must be built from source with `src/build.sh`, which needs the libsndfile development headers (`/usr/include/sndfile.h` is absent here), again a `sudo` install. Quadbike and its PHP scripts are GPL-2.0-or-later and are downloadable from <https://beebstuff.uk/f/acorn/quadbike/> (releases 2.0.1 to 2.0.5, scripts including `lsblocks-1.2.php.txt`); the site states it will go offline on or before 22 February 2027.
-- To run it: install `php-cli` and `libsndfile1-dev`, build Quadbike from a release, then run `QUADBIKE_LSBLOCKS=/path/to/lsblocks.php QUADBIKE_BIN=/path/to/quadbike .venv/bin/taperescue benchmark`. The benchmark transcribes each damaged WAV to TIBET, runs `php -f lsblocks.php +r capture.tibet` with an argument list, and records the block rows and the `M: Metrics|Errors|E|Blocks|N` line from the actual output.
-- Evidence:
+- History (task 17.1): the comparison first did not run because PHP and the libsndfile headers were not installed and installing them needed `sudo`. The user later installed `php-cli` (PHP 8.3.6) and `libsndfile1-dev` (1.2.2).
+- To rerun it: build Quadbike as described in the README benchmark section, then run `QUADBIKE_BIN=build/quadbike/src205/quadbike-2.0.5-rc7/src/quadbike QUADBIKE_LSBLOCKS=build/quadbike/lsblocks.php .venv/bin/taperescue benchmark`. The benchmark transcribes each damaged WAV to TIBET with `quadbike -t capture.tibet <wav>`, then runs `php -f lsblocks.php +r capture.tibet`, both with argument lists.
+- Evidence: `benchmarks/results.json` (`quadbike.runs`) and `benchmarks/results.md`, and `verification/entries/26.2.md`, which has the commands and raw output. Quadbike 2.0.5 (`quadbike-2.0.5-rc7.zip`, SHA-256 `1c6931bb05c7445c543fcd0d9eb1b3b0fda808b802af3ba37b5f5433be979920`, matching the published `sha256.txt`) was built with `./build.sh linux gcc release`. `lsblocks.php` v1.2 (`lsblocks-1.2.php.txt`, SHA-256 `954928818162ae961135b3f8d4e51cae3111d5972464c043425b0c00dc18ea3e`, matching the published value) ran under PHP 8.3.6. For each of `damaged_a.wav` and `damaged_b.wav`, lsblocks lists 8 blocks. Blocks 0–5 and 7 have no error code, and block 6 is marked `DC` (data CRC mismatch). The metrics line is `M: Metrics|Errors|1|Blocks|8`. The `+r` repair then prints `Block #6: bad data CRC: read 8a59, computed c6f8.` (damaged_a; `computed 66b5` for damaged_b) followed by `Bitflip failed.`, so Quadbike recovers 7 of 8 blocks from each capture. As a baseline, `clean.wav` gives 8 blocks with no errors and `M: Metrics|Errors|0|Blocks|8`.
 
 ## P5: Deployment to a functional URL
 
