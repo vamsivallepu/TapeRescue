@@ -1187,6 +1187,30 @@
         "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
         "timestamp": 1795413141548
       }
+    ],
+    "26.4 Record which `.uef` the user loaded in JSBeeb": [
+      {
+        "executionId": "edb81120-a352-46fb-aeaf-16132e78f9a7",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795413863483
+      },
+      {
+        "executionId": "edb81120-a352-46fb-aeaf-16132e78f9a7",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795413996312
+      }
+    ],
+    "26.5 Save the JSBeeb screenshot and record the user's web UI click-through": [
+      {
+        "executionId": "a22dc053-1543-40ff-a635-e5d1396d11e3",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795415676282
+      },
+      {
+        "executionId": "a22dc053-1543-40ff-a635-e5d1396d11e3",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795415908390
+      }
     ]
   }
 }

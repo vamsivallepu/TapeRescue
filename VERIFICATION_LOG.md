@@ -3199,6 +3199,83 @@ Made after the checks above, to fix the two README wording issues listed under "
 
 The new line 82 is the summary line printed by `.venv/bin/python -m pytest -q`, re-run for this correction: `504 passed, 1 warning in 39.42s`, exit 0. The two open items for README lines 82 and 217 are resolved. The other open items above are unchanged.
 
+## Task 26.4: Record which `.uef` the user loaded in JSBeeb (P2)
+Requirements: 22.2, 22.3
+### What was supplied
+- After task 26.1, the user replied in the Kiro chat: "I loaded STARMAP.uef file only".
+- The orchestrator ran `sha256sum ~/Downloads/STARMAP.uef; stat -c '%y %s bytes' ~/Downloads/STARMAP.uef` and got `e7041f167d9e33e192604e0eeca7f4400d4af3a98932bea43eb9d6c3de1a2045`, 2420 bytes, modified 2026-11-23 10:34:26 +0530. The commands were re-run for this entry (below), with the same results.
+- `demo-out/STARMAP.uef` does not exist in the repository (`ls demo-out` fails), so the only `STARMAP.uef` found is the one in `~/Downloads`.
+### Interpretation
+- The file named `STARMAP.uef` in `~/Downloads` has SHA-256 `e7041f16…2045`, the recovered image's digest. The image exported from `clean.wav` has the same digest (tasks 18 and 23.4), so the digest shows that the file holds the correct bytes but cannot show whether it came from the damaged recordings or from the clean one.
+- Its name and location are consistent with the web app's **Download tape image**: the server sends `Content-Disposition: attachment; filename="{data.tape_name}.uef"` (`server/app.py` line 565) and the UI passes `${program}.uef` as the file name (`web/src/App.tsx` line 152), which is `STARMAP.uef` for the sample. `taperescue demo` also writes a file of that name, but to `demo-out/`, which does not exist.
+- That JSBeeb loaded this exact copy rests on the user's statement. The screenshot still does not show the loaded file.
+- "Only" is read as: the user loaded the file and did not report clicking through the block inspector or the reconstructed-block confirmation dialog. A file in `~/Downloads` suggests a browser download, but that the dialog was seen and **Continue download** was clicked was not reported. The web UI click-through in a real browser therefore remains not confirmed.
+### Edits made
+- `verification/pending.md`, P2 Evidence: the "Not shown by the screenshot" bullet was replaced by two bullets. "File loaded (task 26.4, 2026-11-23)" records the user's statement, the SHA-256, size and modification time, the `verify-uef` result, the clean/recovered identity, the download-name consistency, and that the exact copy rests on the user's statement. "Not shown and not stated" keeps the load messages, browser, offset 64 and the web UI click-through as not covered. The screenshot description and cross-check bullets are unchanged. P2 status is unchanged (`done (manual, user-run)`). P1 and P3–P6 were not touched.
+- `README.md` walkthrough step 5: after "The screenshot does not show which `.uef` file was loaded or the tape loading messages", the sentence saying the user had been asked to load the recovered image was replaced with the user's statement, the file's size, time and SHA-256, the `verify-uef` result, that the digest cannot tell clean from recovered, that the exact copy rests on the user's statement, and that steps 1–4 remain unconfirmed in a real browser.
+- `README.md` status table, P2 row: "The loaded file name is not visible in it" was replaced with the user's statement, the abbreviated SHA-256, and "The web UI click-through is not confirmed".
+- The `.uef` was not copied into the repository. Nothing was committed.
+### Commands and results
+| Command | Result |
+| --- | --- |
+| `date -I` | `2026-11-23` |
+| `sha256sum ~/Downloads/STARMAP.uef` | `e7041f167d9e33e192604e0eeca7f4400d4af3a98932bea43eb9d6c3de1a2045  /home/vamsik/Downloads/STARMAP.uef` |
+| `stat -c '%y %s bytes' ~/Downloads/STARMAP.uef` | `2026-11-23 10:34:26.764231842 +0530 2420 bytes` |
+| `ls -la demo-out` | `ls: cannot access 'demo-out': No such file or directory` |
+| `.venv/bin/taperescue verify-uef ~/Downloads/STARMAP.uef --reference fixtures/starmap/reference_payloads.json` | Exit 0. Blocks 0–7 `ok` (block 6: 256 bytes, `header_crc 0x2349`, `data_crc 0x8A59`, sha256 `9e1c72f9…5b7f`; block 7: 233 bytes). `payload sha256: 4ac213a0e014229eb195bd7380962b9f4528147838ec9f1f7cb00be165e06e3a`, `reference sha256:` the same, `verified: 8 blocks match the reference` |
+| `sha256sum` and `stat -c '%y'` again after `verify-uef` | Same digest and the same modification time, so `verify-uef` did not change the file |
+| `.venv/bin/python -m pytest tests/smoke -q` | `8 passed in 0.31s` |
+### What remains unverified
+- That JSBeeb loaded this exact copy of `STARMAP.uef` (user's statement only).
+- Whether the loaded image came from **Try sample** (damaged recordings) or from the clean recording: the digests are identical.
+- The browser used, and the tape loading messages.
+- The TapeRescue web UI click-through in a real browser (strips, block inspector, confirmation dialog).
+- The value at block 6 offset 64, which the JSBeeb run cannot distinguish (see `verification/entries/26.1.md`).
+- `verification/evidence/jsbeeb-starmap.png` has still not been added.
+### Blockers
+None.
+
+## Task 26.5: Save the JSBeeb screenshot and record the user's web UI click-through (P2)
+Requirements: 18.1, 18.3, 18.5, 22.2, 22.3
+### What was supplied
+- The user asked for the screenshot to be saved. It is the user's file `/home/vamsik/Pictures/Screenshots/Screenshot from 2026-11-23 10-44-58.png`. It was viewed for this entry: it shows the JSBeeb screen described in `verification/entries/26.1.md` (title "STARMAP", "The northern winter sky", "240 stars plotted", Plough, Cassiopeia, Cygnus and Orion with lines and labels, the moon, the hills, W N E, the `>` prompt, no error), and the status bar reads "drive 0/2 Elite", "drive 1/3 empty", "cassette motor STARMAP".
+- The user's statement in the Kiro chat, verbatim: "I have opened the web UI and clicked on try sample. I selected the block 6 and after downloading the tape image only I got that starmap.uef file and that's how I got it and thats one that you have seen it in downloads folder."
+### Interpretation
+- User-reported, in a real browser: the user opened the web UI, clicked **Try sample**, selected block 6, and clicked **Download tape image**, and the resulting file is `~/Downloads/STARMAP.uef` (SHA-256 `e7041f167d9e33e192604e0eeca7f4400d4af3a98932bea43eb9d6c3de1a2045`, checked in task 26.4). This replaces task 26.4's reading of "only" as "did not report clicking through the UI".
+- Inference from the code, not stated by the user: the reconstructed-block confirmation dialog was shown and **Continue download** was clicked.
+  - `web/src/DownloadBar.tsx` lines 80–83: `onTapeClick` calls `setConfirming(true)` when `reconstructed.length > 0` and downloads directly only otherwise.
+  - Lines 85–89: `closeDialog(proceed)` calls `download("tape")` only when `proceed` is true.
+  - Lines 199–200: only the **Continue download** button calls `onClose(true)`. Escape (lines 171, 176) and **Cancel** (line 202) call `onClose(false)`.
+  - `web/src/api.ts` line 374: `tapeUrl` is used only by `fetchTapeFile`, which the UI calls only through `DownloadBar`.
+  - `tests/server/test_app.py` line 164: the `POST /api/sample` envelope has `"reconstructed_blocks": [6]`.
+  - A tape download through the UI after **Try sample** therefore goes through the dialog. Fetching `/api/sessions/{sid}/tape.uef` directly would bypass it, but the user describes using the download button.
+- The screenshot was taken at 10:44:58 +0530, after the `.uef`'s modification time of 10:34:26 +0530, which is consistent with the reported order.
+### Edits made
+- Added `verification/evidence/jsbeeb-starmap.png` (copy of the user's screenshot, original untouched).
+- `verification/evidence/README.md`: the table now lists the saved file with its source path, format, size, capture time and SHA-256.
+- `verification/pending.md`, P2 Evidence: the first line now points at the saved file with its SHA-256 and source. The "Not shown and not stated" bullet was replaced by three bullets: "Web UI steps (task 26.5)" with the verbatim statement and the user-reported steps, "Inference, not stated by the user" with the dialog inference and code lines, and "Not shown and not stated" (inspector contents, dialog text, **Download report**, JSBeeb help panel, browser name and version, tape loading messages, block 6 offset 64). P2's status is unchanged. P1 and P3–P6 were not touched.
+- `README.md`: the walkthrough intro now records the user-reported steps and says the screen contents in steps 1–4 come from code and tests. Step 5 links the saved screenshot with its abbreviated SHA-256, and the sentence saying the user did not report the click-through was replaced with the user-reported steps and the dialog inference, marked as not stated by the user. The P2 row of the status table replaces "The web UI click-through is not confirmed" with the reported steps and the screenshot path.
+- Nothing was committed or pushed.
+### Commands and results
+| Command | Result |
+| --- | --- |
+| `date -I` | `2026-11-23` |
+| `sha256sum "$SRC"` (source screenshot) | `007143985891615af51f15a4d9575663c53f3126cb04817ba2c62b156e42dee9` |
+| `stat -c '%y %s bytes' "$SRC"` | `2026-11-23 10:44:58.777180864 +0530 225781 bytes` |
+| `cp "$SRC" verification/evidence/jsbeeb-starmap.png` | Exit 0 |
+| `sha256sum verification/evidence/jsbeeb-starmap.png "$SRC"` | Both `007143985891615af51f15a4d9575663c53f3126cb04817ba2c62b156e42dee9` |
+| `cmp "$SRC" verification/evidence/jsbeeb-starmap.png` | No output, exit 0 (identical) |
+| `file verification/evidence/jsbeeb-starmap.png` | `PNG image data, 1914 x 865, 8-bit/color RGBA, non-interlaced` |
+| `git check-ignore -v verification/evidence/jsbeeb-starmap.png` | No match (the file is not git-ignored) |
+| `.venv/bin/python -m pytest tests/smoke -q` | `8 passed in 0.21s` |
+### What remains unverified
+- That the dialog was shown and **Continue download** clicked (inferred from the code; not stated).
+- What the strips, block inspector and dialog displayed in the user's session; whether **Download report** was used; the browser name and version.
+- That JSBeeb loaded this exact copy of `STARMAP.uef` (user's statement only), and the tape loading messages.
+- The value at block 6 offset 64, which the JSBeeb run cannot distinguish (see `verification/entries/26.1.md`).
+### Blockers
+None.
+
 # Pending Items
 
 Manual or external steps that have not been performed. No result is claimed for any item until its evidence field is filled in with a link, file path, or log excerpt and its status is changed. Commands are run from the repository root with the virtual environment's `taperescue` (`.venv/bin/taperescue`) and the decoder built by `scripts/build_decoder.sh` at `build/decoder/ScanTape`.
@@ -3223,10 +3300,13 @@ Manual or external steps that have not been performed. No result is claimed for 
   2. Load `demo-out/STARMAP.uef` in JSBeeb at <https://bbc.xania.org/> with the local tape picker.
   3. Type `*TAPE`, then `CHAIN "STARMAP"`, and confirm that the star map draws to completion. STARMAP needs the bytes of block 6, the reconstructed block, to run to completion (Requirement 4.6).
   4. Record the JSBeeb URL used, the browser, the SHA-256 of `STARMAP.uef`, and a screenshot or screen recording of the finished star map.
-- Evidence: Screenshot posted by the user in the Kiro chat on 2026-11-23; to be saved as `verification/evidence/jsbeeb-starmap.png` (not yet in the repository). The user was asked to start the container, click **Try sample**, click **Download tape image**, load the downloaded `STARMAP.uef` (the recovered image) in JSBeeb at <https://bbc.xania.org/> with the local tape picker, then type `*TAPE` and `CHAIN "STARMAP"`. The user then posted the screenshot with the words "Here is the screenshot".
+- Evidence: Screenshot posted by the user in the Kiro chat on 2026-11-23, saved in task 26.5 as [`verification/evidence/jsbeeb-starmap.png`](evidence/jsbeeb-starmap.png) (PNG, 1914 x 865, 225781 bytes, SHA-256 `007143985891615af51f15a4d9575663c53f3126cb04817ba2c62b156e42dee9`). It is an unmodified `cp` of the user's file `~/Pictures/Screenshots/Screenshot from 2026-11-23 10-44-58.png` (same SHA-256), taken at 10:44:58 +0530, about ten minutes after the modification time of `~/Downloads/STARMAP.uef` (10:34:26). The user was asked to start the container, click **Try sample**, click **Download tape image**, load the downloaded `STARMAP.uef` (the recovered image) in JSBeeb at <https://bbc.xania.org/> with the local tape picker, then type `*TAPE` and `CHAIN "STARMAP"`. The user then posted the screenshot with the words "Here is the screenshot".
   - What it shows: the JSBeeb UI (menus BBC B, Media, Reset, State, Debug, More; status bar "drive 0/2 Elite", "drive 1/3 empty", "cassette motor STARMAP"). On the emulated screen: the title "STARMAP" at top centre, "The northern winter sky" in cyan, "240 stars plotted" in blue/purple, the four constellations Plough, Cassiopeia, Cygnus and Orion with labels, cyan connecting lines and white "+" stars, a crescent moon top right, a band of small blue/purple dots across the middle, a short white diagonal line top left, white "+" stars across the sky, hills along the bottom, the compass letters W, N and E along the bottom edge, and the BASIC prompt `>` at the top left. No error message is visible.
   - Cross-check against `fixtures/starmap/STARMAP.bas`: every visible text string and drawn element matches the source line that produces it, and the star count 240 matches `PROCstars(240)` (line 100). The constellation labels and lines are drawn by `PROCconstellations` (lines 3000–3150, program offsets 1538–1771), which lies entirely in block 6, the reconstructed block. If the damaged value from `damaged_a.wav` at block 6 offset 17 or from `damaged_b.wav` at offset 201 had been loaded, BASIC would have stopped with an error before the constellations were complete. No mismatch was found. The table is in `verification/entries/26.1.md`.
-  - Not shown by the screenshot: which `.uef` file was loaded, its SHA-256, the load progress and block-by-block loading messages, and the browser used. The user did not say which file was loaded or whether the web UI steps were followed; the claim that this was the recovered image rests on the instructions given, not on the screenshot. The run also cannot distinguish the value at block 6 offset 64, which is the low byte of the number of line 3040. The web UI click-through (block inspector, confirmation dialog) is not covered by this evidence.
+  - File loaded (task 26.4, 2026-11-23): the screenshot does not show which `.uef` was loaded, but the user has since stated in the Kiro chat: "I loaded STARMAP.uef file only". On the user's machine, `sha256sum ~/Downloads/STARMAP.uef` gives `e7041f167d9e33e192604e0eeca7f4400d4af3a98932bea43eb9d6c3de1a2045`, and `stat` gives 2420 bytes, modified 2026-11-23 10:34:26 +0530. `taperescue verify-uef ~/Downloads/STARMAP.uef --reference fixtures/starmap/reference_payloads.json` reports `verified: 8 blocks match the reference` (block 6 `data_crc 0x8A59`, payload SHA-256 `4ac213a0…6e3a`). This digest is the recovered image's, which is identical to the clean image's, so the digest alone cannot tell the two apart. The file's name and location in `~/Downloads` are consistent with the web app's **Download tape image**, which names the file `STARMAP.uef`. That JSBeeb loaded this exact copy rests on the user's statement. The file was not copied into the repository. Details are in `verification/entries/26.4.md`.
+  - Web UI steps (task 26.5, 2026-11-23, user-reported): the user stated in the Kiro chat: "I have opened the web UI and clicked on try sample. I selected the block 6 and after downloading the tape image only I got that starmap.uef file and that's how I got it and thats one that you have seen it in downloads folder." Recorded as reported by the user, in a real browser: the user opened the web UI, clicked **Try sample**, selected block 6, and clicked **Download tape image**, and the resulting file is `~/Downloads/STARMAP.uef` (SHA-256 `e7041f16…2045`, checked in task 26.4). This statement replaces the earlier reading of "only" in task 26.4. No screenshot or recording of the TapeRescue UI was supplied.
+  - Inference, not stated by the user: the reconstructed-block confirmation dialog was shown and **Continue download** was clicked. In `web/src/DownloadBar.tsx`, `onTapeClick` (lines 80–83) opens the dialog instead of downloading whenever `reconstructed_blocks` is non-empty, and the tape is fetched only from `closeDialog(true)` (lines 85–89), which only the **Continue download** button calls (lines 199–200). Escape and **Cancel** call `onClose(false)` (lines 171, 176, 202). `tapeUrl` is used only by `fetchTapeFile` (`web/src/api.ts` line 374). The `POST /api/sample` envelope has `"reconstructed_blocks": [6]` (`tests/server/test_app.py` line 164), so a tape download from the UI implies the dialog was confirmed.
+  - Not shown and not stated: what the block inspector displayed for block 6 (offsets, byte values, the recorded CRC, provenance), the text of the confirmation dialog, whether **Download report** was used, the JSBeeb help panel, the browser name and version, and the tape load progress and block-by-block loading messages. The run also cannot distinguish the value at block 6 offset 64, which is the low byte of the number of line 3040.
 
 ## P3: Test with real archival captures
 

@@ -458,6 +458,14 @@ Each task in this section writes `verification/entries/<task-id>.md` under the v
     - Run the full Python suite; regenerate VERIFICATION_LOG.md; confirm the pending-item statuses match the recorded evidence
     - _Requirements: 22.1_
 
+  - [x] 26.4 Record which `.uef` the user loaded in JSBeeb
+    - Add the user's confirmation and the SHA-256 of the loaded file to P2's evidence in `verification/pending.md` and to the README; keep the browser click-through of the web UI recorded as not confirmed
+    - _Requirements: 22.2, 22.3_
+
+  - [x] 26.5 Save the JSBeeb screenshot and record the user's web UI click-through
+    - Copy the user's screenshot into `verification/evidence/jsbeeb-starmap.png` with its SHA-256, and record the user's description of the web UI steps they performed in `verification/pending.md` and the README, without claiming steps the user did not describe
+    - _Requirements: 18.1, 18.3, 18.5, 22.2, 22.3_
+
 ## Notes
 
 - Sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
@@ -503,7 +511,9 @@ Each task in this section writes `verification/entries/<task-id>.md` under the v
     { "id": 29, "tasks": ["25.5"] },
     { "id": 30, "tasks": ["26.1"] },
     { "id": 31, "tasks": ["26.2"] },
-    { "id": 32, "tasks": ["26.3"] }
+    { "id": 32, "tasks": ["26.3"] },
+    { "id": 33, "tasks": ["26.4"] },
+    { "id": 34, "tasks": ["26.5"] }
   ]
 }
 ```
