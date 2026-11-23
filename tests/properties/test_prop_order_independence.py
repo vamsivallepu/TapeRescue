@@ -341,9 +341,10 @@ def test_pairing_rejected_in_every_order(data) -> None:
         assert outcome[:2] == ("rejected", "no_anchor"), outcome[0]
 
 
-def test_generator_reaches_interesting_cases() -> None:
+def test_generator_reaches_interesting_cases(fixed_constant_pool) -> None:
     """Fixed sample of the generator: the property must not hold only because
-    every session is trivial."""
+    every session is trivial. ``fixed_constant_pool`` (conftest.py) keeps the
+    sample the same whichever other test modules pytest loaded."""
     seen: Counter[str] = Counter()
 
     @settings(max_examples=300, derandomize=True, deadline=None, database=None,

@@ -36,7 +36,7 @@ python3 -m venv .venv
 .venv/bin/pip install -e '.[dev,server]'
 ```
 
-The `dev` extra installs pytest and Hypothesis; the `server` extra installs FastAPI, uvicorn, python-multipart and httpx.
+The `dev` extra installs pytest, Hypothesis and httpx (used by the server tests); the `server` extra installs FastAPI, uvicorn and python-multipart.
 
 ### 2. Build the decoder
 
@@ -79,7 +79,7 @@ By default this overwrites the tracked files in `fixtures/starmap/` (`clean.wav`
 ```
 
 ```
-489 passed, 1 warning in 46.97s
+502 passed, 1 warning in 30.86s
 ```
 
 The decoder-dependent tests need `build/decoder/ScanTape` from step 2. The warning is Starlette's deprecation notice about `httpx` in its test client. The property tests (Hypothesis) are in `tests/properties/` and run with fixed seeds.
@@ -136,10 +136,9 @@ demo complete: block 6 reconstructed from damaged_a.wav, damaged_b.wav; image de
 
 The demo writes `demo-out/STARMAP.uef` and `demo-out/report.json` (`demo-out/` is git-ignored). The recovered image has SHA-256 `e7041f167d9e33e192604e0eeca7f4400d4af3a98932bea43eb9d6c3de1a2045`, the same as the image exported from `clean.wav` alone.
 
-The individual steps are also available (`.venv/bin/taperescue --help` lists all commands). The CLI does not create output directories:
+The individual steps are also available (`.venv/bin/taperescue --help` lists all commands). The CLI creates missing output directories, such as `out/` below:
 
 ```sh
-mkdir -p out
 .venv/bin/taperescue decode fixtures/starmap/damaged_a.wav -o out/damaged_a.json
 .venv/bin/taperescue recover fixtures/starmap/damaged_a.wav fixtures/starmap/damaged_b.wav --report out/report.json --uef out/STARMAP.uef
 .venv/bin/taperescue verify-uef out/STARMAP.uef --reference fixtures/starmap/reference_payloads.json

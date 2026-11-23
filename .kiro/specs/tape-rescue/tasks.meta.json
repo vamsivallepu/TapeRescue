@@ -1037,6 +1037,98 @@
         "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
         "timestamp": 1795353650921
       }
+    ],
+    "25.1 Ship license and notices files in the container and fix the LGPL gap": [
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795408271131
+      },
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795408279239
+      },
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795409373811
+      }
+    ],
+    "25.2 Make the generator-coverage property tests independent of test collection": [
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795408271528
+      },
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795408280266
+      },
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795409374812
+      }
+    ],
+    "25.3 Create parent directories for CLI output paths": [
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795408271816
+      },
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795408281190
+      },
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795409375886
+      }
+    ],
+    "25.4 Update design.md for the UEF carrier lengths": [
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795408271924
+      },
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795408281825
+      },
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795409376361
+      }
+    ],
+    "25.5 Checkpoint: follow-up fixes": [
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795408272044
+      },
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795409385551
+      },
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795409911452
+      }
+    ],
+    "25. Fix open issues found at the final checkpoint": [
+      {
+        "executionId": "6dd92d68-2666-466f-bde2-4d2f73c581c5",
+        "chatSessionId": "sess_a3116fcc-5d19-4ed7-bb10-886a20fc6d1d",
+        "timestamp": 1795409911534
+      }
     ]
   }
 }

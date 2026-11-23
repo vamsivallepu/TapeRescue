@@ -342,8 +342,10 @@ Output layout (uncompressed UEF 0.10):
 
 - Magic `UEF File!\0`, minor version 10, major version 0.
 - Chunk `0x0000` origin string `TapeRescue <version>`.
-- Per block: chunk `0x0110` carrier tone (5100 cycles before block 0, 1800 cycles before other blocks), then chunk `0x0100` containing `0x2A`, the `header_raw` bytes from the lowest-`capture_id` valid-header read, the recorded header CRC (high byte first), the selected payload, and the recorded data CRC (high byte first) (Requirement 11.3). Empty blocks omit the payload and data CRC.
-- Trailing chunk `0x0110` carrier tone.
+- Per block: chunk `0x0110` carrier tone (12240 cycles, 5.1 s, before block 0; 2160 cycles, 0.9 s, before other blocks), then chunk `0x0100` containing `0x2A`, the `header_raw` bytes from the lowest-`capture_id` valid-header read, the recorded header CRC (high byte first), the selected payload, and the recorded data CRC (high byte first) (Requirement 11.3). Empty blocks omit the payload and data CRC.
+- Trailing chunk `0x0110` carrier tone of 4800 cycles (2.0 s, the same as the fixture trailer).
+
+Chunk `0x0110` holds a 16-bit count of cycles at twice the base frequency, which is 2400 Hz at the 1200 Hz default ([fileformats.org, "UEF file format: Chunks"](https://fileformats.org/system/floppy/uef/chunks/), citing the UEF 0.10 specification). The counts are the BBC MOS lead-in durations from the FSK modulator's timing table multiplied by 2400: 5.1 × 2400 = 12240 and 0.9 × 2400 = 2160. They are the constants `FIRST_CARRIER_CYCLES`, `OTHER_CARRIER_CYCLES` and `TRAILING_CARRIER_CYCLES` in `taperescue/uef/exporter.py`.
 
 Reader (independent, Requirement 11.4):
 

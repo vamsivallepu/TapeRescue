@@ -5,11 +5,11 @@
       "name": "Rerun recovery tests on decoder adapter or engine save",
       "trigger": "PostFileSave",
       "matcher": "(^|/)taperescue/(decoder_adapter|engine)/.+\\.py$",
-      "description": "Requirement 20.2. When a Python file under taperescue/decoder_adapter/ or taperescue/engine/ is saved, run the recovery test suite: engine, decoder adapter and integration tests (decoder subprocess, fixture decode, end-to-end recovery), then the property tests in a separate pytest run. The property tests' generator-coverage checks only pass when tests/properties runs on its own or with the full suite, so they get their own invocation.",
+      "description": "Requirement 20.2. When a Python file under taperescue/decoder_adapter/ or taperescue/engine/ is saved, run the recovery test suite: engine, decoder adapter and integration tests (decoder subprocess, fixture decode, end-to-end recovery) and the property tests, in one pytest run.",
       "timeout": 180,
       "action": {
         "type": "command",
-        "command": ".venv/bin/python -m pytest tests/engine tests/decoder_adapter tests/integration -q && .venv/bin/python -m pytest tests/properties -q"
+        "command": ".venv/bin/python -m pytest tests/engine tests/decoder_adapter tests/integration tests/properties -q"
       }
     }
   ]

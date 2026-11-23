@@ -16,12 +16,14 @@ dependencies = []
 dev = [
     "pytest>=8",
     "hypothesis>=6.100",
+    # Only the server tests use httpx (through FastAPI's TestClient); the
+    # server code does not import it, so it is not in the server extra.
+    "httpx>=0.27",
 ]
 server = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
     "python-multipart>=0.0.9",
-    "httpx>=0.27",
 ]
 
 [project.scripts]

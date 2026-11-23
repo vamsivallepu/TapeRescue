@@ -88,6 +88,12 @@ COPY --from=decoder /src/build/decoder/BUILD_INFO /app/bin/BUILD_INFO
 COPY --from=web /web/dist/ /app/web/dist/
 COPY fixtures/starmap/clean.wav fixtures/starmap/damaged_a.wav \
      fixtures/starmap/damaged_b.wav /app/fixtures/starmap/
+# License notices travel with the distributed binaries and bundle: TapeRescue's
+# own license, the third-party notices, the AtomTapeUtils MIT license (ScanTape),
+# and the LGPL-2.1 text for the statically linked gzstream.
+COPY LICENSE THIRD_PARTY_NOTICES.md /app/licenses/
+COPY third_party/AtomTapeUtils/LICENSE.txt /app/licenses/AtomTapeUtils-LICENSE.txt
+COPY LICENSES/ /app/licenses/LICENSES/
 
 ENV TAPERESCUE_DECODER=/app/bin/ScanTape \
     TAPERESCUE_FIXTURES=/app/fixtures/starmap \

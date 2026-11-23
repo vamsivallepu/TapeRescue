@@ -346,8 +346,10 @@ def test_tampered_recorded_crc_fails_verification(session: Session, data) -> Non
     assert any(p.startswith(f"block {n}:") for p in excinfo.value.problems), excinfo.value.problems
 
 
-def test_generator_covers_the_cases() -> None:
-    """Fixed sample of the generator: every scenario the property relies on occurs."""
+def test_generator_covers_the_cases(fixed_constant_pool) -> None:
+    """Fixed sample of the generator: every scenario the property relies on occurs.
+    ``fixed_constant_pool`` (conftest.py) keeps the sample the same whichever
+    other test modules pytest loaded."""
     seen: list[Session] = []
 
     @settings(max_examples=200, derandomize=True, deadline=None, database=None,

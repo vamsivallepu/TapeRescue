@@ -167,7 +167,7 @@ Implementation languages: Python 3.12 (`taperescue` package, server, tests with 
     - _Requirements: 11.4_
 
   - [x] 9.4 Implement the UEF exporter and export verification
-    - `taperescue/uef/exporter.py` with `export_uef` and `ExportRefused`: UEF 0.10 header, origin chunk, carrier chunks (5100 cycles before block 0, 1800 before others, trailing tone), `0x0100` blocks from the lowest-capture-ID valid-header `header_raw`, recorded header CRC, selected payload, and recorded data CRC (high byte first); never recompute CRCs
+    - `taperescue/uef/exporter.py` with `export_uef` and `ExportRefused`: UEF 0.10 header, origin chunk, carrier chunks in UEF chunk `0x0110` units of 2400 Hz cycles (12240 cycles = 5.1 s before block 0, 2160 = 0.9 s before others, 4800 = 2.0 s trailing tone), `0x0100` blocks from the lowest-capture-ID valid-header `header_raw`, recorded header CRC, selected payload, and recorded data CRC (high byte first); never recompute CRCs
     - `taperescue/uef/verify.py` with `verify_export(path, result)`: CRCs in the file equal the recorded CRCs, both CRCs recompute from file bytes, and the concatenated payload equals the recovered program; on failure delete the output and raise `ExportVerificationFailed`
     - _Requirements: 11.3, 11.4_
 
@@ -411,6 +411,36 @@ Implementation languages: Python 3.12 (`taperescue` package, server, tests with 
   - Run `python scripts/collect_verification.py`; confirm every task has an entry and every external step is listed as a Pending_Item with an evidence placeholder
   - _Requirements: 22.1, 22.2, 22.3_
 
+### Follow-up fixes
+
+Each task in this section writes `verification/entries/<task-id>.md` under the verification log rule above.
+
+- [x] 25. Fix open issues found at the final checkpoint
+  - [x] 25.1 Ship license and notices files in the container and fix the LGPL gap
+    - Add the full LGPL-2.1 text as `LICENSES/LGPL-2.1.txt` (official GNU text) and reference it from THIRD_PARTY_NOTICES.md for gzstream
+    - Copy `LICENSE`, `THIRD_PARTY_NOTICES.md`, `third_party/AtomTapeUtils/LICENSE.txt` and `LICENSES/` into the image under `/app/licenses/`
+    - Move `httpx` from the `server` extra to the `dev` extra in pyproject.toml (tests only) and remove httpcore/certifi from the notices if they are no longer in the image
+    - Rebuild the image, confirm the files are present, `pip list` in the image no longer contains httpx/certifi, and the sample smoke still returns the `.uef` with SHA-256 e7041f16…2045
+    - _Requirements: 21.2, 19.3_
+
+  - [x] 25.2 Make the generator-coverage property tests independent of test collection
+    - `tests/properties/test_prop_order_independence.py::test_generator_reaches_interesting_cases` and `tests/properties/test_prop_uef_roundtrip.py::test_generator_covers_the_cases` fail when tests/engine, tests/decoder_adapter, tests/integration and tests/properties run in one pytest call; make their fixed samples deterministic regardless of which modules are loaded, without weakening the coverage thresholds or the properties
+    - Run the combined command, the hook command and the full suite
+    - _Requirements: 13.1, 13.5, 20.2_
+
+  - [x] 25.3 Create parent directories for CLI output paths
+    - `recover --report/--uef`, `export -o`, `decode -o`, `demo --out`, `benchmark --out` create missing parent directories; keep refusing an output path equal to an input
+    - Add CLI tests; update the README to drop the `mkdir -p out` workaround if it is no longer needed
+    - _Requirements: 16.1, 16.3_
+
+  - [x] 25.4 Update design.md for the UEF carrier lengths
+    - Change 5100/1800 to 12240/2160 cycles (5.1 s and 0.9 s at 2400 Hz) plus the 4800-cycle trailing tone, citing the UEF chunk 0x0110 units; also update the wording in task 9.4 of this file
+    - _Requirements: 11.3_
+
+  - [x] 25.5 Checkpoint: follow-up fixes
+    - Run the full Python suite, the web tests, the hook command and the container smoke; regenerate VERIFICATION_LOG.md; confirm P1–P6 remain pending
+    - _Requirements: 22.1_
+
 ## Notes
 
 - Sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
@@ -451,7 +481,9 @@ Implementation languages: Python 3.12 (`taperescue` package, server, tests with 
     { "id": 24, "tasks": ["22"] },
     { "id": 25, "tasks": ["23.1", "23.2", "23.3", "23.4"] },
     { "id": 26, "tasks": ["23.5"] },
-    { "id": 27, "tasks": ["24"] }
+    { "id": 27, "tasks": ["24"] },
+    { "id": 28, "tasks": ["25.1", "25.2", "25.3", "25.4"] },
+    { "id": 29, "tasks": ["25.5"] }
   ]
 }
 ```

@@ -2693,6 +2693,263 @@ None of these makes a required test run fail. None was fixed in this checkpoint.
 
 None for the automated checks: the full Python suite, the web tests and the hook command passed. The external steps P1–P6 remain pending in `verification/pending.md`.
 
+## Task 25.1: Ship license and notices files in the container and fix the LGPL gap
+Requirements: 21.2, 19.3
+Run from `/home/vamsik/TapeRescue`. The image `taperescue:local` was rebuilt twice: once to read the new package list, and once more after `THIRD_PARTY_NOTICES.md` was updated, so that the image carries the final notices. Nothing was committed or pushed.
+### Changes
+- `LICENSES/LGPL-2.1.txt` (new): the official GNU LGPL-2.1 text, downloaded unchanged with `curl` from https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt.
+- `Dockerfile`, runtime stage: copies `LICENSE` and `THIRD_PARTY_NOTICES.md` to `/app/licenses/`, `third_party/AtomTapeUtils/LICENSE.txt` to `/app/licenses/AtomTapeUtils-LICENSE.txt` (renamed so it does not sit next to TapeRescue's `LICENSE` under an ambiguous name), and `LICENSES/` to `/app/licenses/LICENSES/`.
+- `pyproject.toml`: `httpx>=0.27` moved from the `server` extra to the `dev` extra, with a comment explaining that only the server tests use it.
+- `THIRD_PARTY_NOTICES.md`:
+  - The gzstream "License text" bullet now points to `LICENSES/LGPL-2.1.txt` and `/app/licenses/LICENSES/LGPL-2.1.txt` and gives the source URL and SHA-256. The "Notice" bullet says the file ships in the image.
+  - Section 2 has a new table of the files in `/app/licenses/`.
+  - The httpx, httpcore and certifi rows were removed from the image's package table, and their "Pulled in by" references were removed from anyio, idna and h11.
+  - The httpx and certifi notes were replaced by one note saying they are dev-only. MPL-2.0 was removed from the list of license texts in the image, and the LGPL-2.1 location was added.
+  - httpx 0.28.1, httpcore 1.0.9 and certifi 2026.11.20 were added to the section 3 dev table.
+- `README.md` line 39: the extras sentence now lists httpx under `dev`, not `server`. No other README line was touched.
+### Commands and results
+| Command | Result |
+| --- | --- |
+| `grep -rnE "httpx\|testclient\|TestClient" server taperescue scripts --include=*.py` | No matches. Only `tests/server/test_app.py` uses httpx, through `TestClient` |
+| `cat .dockerignore` | Excludes `.git`, `.venv`, `build`, `node_modules`, `web/dist`, caches, `*.rom`, `jsbeeb`. Neither `LICENSES/` nor `THIRD_PARTY_NOTICES.md` nor `LICENSE` is excluded |
+| `git check-ignore -v LICENSES/LGPL-2.1.txt` | Not ignored |
+| `curl -fsSL -o LICENSES/LGPL-2.1.txt https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt`; `sha256sum`; `wc -l -c`; `curl -sI …` | SHA-256 `20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95`, 501 lines, 26419 bytes, ASCII text. The server reported `200`, `Content-Length: 26419`, `Last-Modified: Wed, 18 Sep 2024 14:34:04 GMT`, `ETag: "6733-62265b29fd1ee"`. The first line is `GNU LESSER GENERAL PUBLIC LICENSE`, Version 2.1, February 1999 |
+| `.venv/bin/pip install -e '.[dev,server]'` | `Successfully installed taperescue-0.1.0`. httpx 0.28.1 is still in `.venv`. `importlib.metadata.requires('taperescue')` lists `httpx>=0.27; extra == "dev"` and no httpx under `server` |
+| `.venv/bin/python -m pytest -q tests/server` | `47 passed, 1 warning` (Starlette's httpx deprecation notice) |
+| `.venv/bin/python -m pytest -q -rs` | `490 passed, 1 warning in 43.59s` |
+| `docker build -t taperescue:local .` (first rebuild) | exit 0, `sha256:2288569d…6ea8`. The `pip install` layer ran again because the wheel changed |
+| `docker run --rm --entrypoint pip taperescue:local list --format=freeze` | 17 distributions: annotated-doc 0.0.7, annotated-types 0.8.0, anyio 4.16.0, click 8.5.1, fastapi 0.165.0, h11 0.16.0, idna 3.20, opentelemetry-api 1.45.2, pip 25.0.1, pydantic 2.14.4, pydantic_core 2.50.5, python-multipart 0.0.34, starlette 1.10.0, taperescue 0.1.0, typing_extensions 4.16.0, typing-inspection 0.4.5, uvicorn 0.54.0. httpx, httpcore and certifi are gone. All other versions match task 23.2 |
+| `docker run … sh -c 'pip show $(pip list …) \| grep -E "^(Name\|Required-by):"'` | anyio is required by fastapi and starlette, idna by anyio, h11 by uvicorn. The notices' "Pulled in by" column was updated to match |
+| `.venv/bin/python` `importlib.metadata` for httpx, httpcore, certifi | httpx 0.28.1 BSD, httpcore 1.0.9 BSD-3-Clause, certifi 2026.11.20 MPL-2.0 (the section 3 rows) |
+| `docker build -t taperescue:local .` (second rebuild, after the notices edit) | exit 0, `sha256:1b37ae63aebf475cc089ea72ab7d724dde7e842356bf0b93b327f81833a352bf`, created 2026-11-23T10:05:15+05:30. `pip list` in this image gives the same 17 distributions |
+| `docker run -d --name taperescue-smoke251 -p 127.0.0.1:18001:8000 taperescue:local` | Started |
+| `curl http://127.0.0.1:18001/` | `200`, `text/html; charset=utf-8` |
+| `curl -X POST /api/sample` | `200`. Export `{'permitted': True, 'blockers': [], 'reconstructed_blocks': [6]}` |
+| `curl -D - /api/sessions/$SID/tape.uef`; `sha256sum` | `200 OK`, `content-disposition: attachment; filename="STARMAP.uef"`. SHA-256 `e7041f167d9e33e192604e0eeca7f4400d4af3a98932bea43eb9d6c3de1a2045`, which matches the expected value |
+| `docker exec … ls -lR /app/licenses` | `AtomTapeUtils-LICENSE.txt` (1069 bytes), `LICENSE` (1072), `THIRD_PARTY_NOTICES.md` (15259), `LICENSES/LGPL-2.1.txt` (26419). Owned by root and world-readable |
+| `docker exec … sha256sum /app/licenses/…` against `sha256sum` of the repository files | All four match: LGPL `20e50fe7…5d95`, `LICENSE` `f0e22cc8…a037`, notices `3a518957…0161`, AtomTapeUtils `002c2696…42ad1` |
+| `docker exec … id` | `uid=10001(taperescue) gid=10001(taperescue)`, so the container is not running as root |
+| `docker exec … python -c 'importlib.util.find_spec(...)'` for httpx, httpcore, certifi | All `False` |
+| `docker exec … find / -xdev \( -iname "*.rom" -o -iname "*jsbeeb*" \) \| wc -l` | `0` (Requirement 19.3) |
+| `docker stop taperescue-smoke251`; `docker rm taperescue-smoke251`; `docker ps -a --filter name=taperescue-smoke251 -q \| wc -l` | Stopped and removed, 0 containers left. Temporary files in `/tmp` were deleted |
+| A Python check that every Markdown table row in `THIRD_PARTY_NOTICES.md` has the same column count as its table | `tables ok`. The image package table lists the 16 non-`taperescue` distributions from `pip list` |
+### Notes
+- The image's `LICENSE` and `THIRD_PARTY_NOTICES.md` are copies taken at build time. If either file changes, rebuild the image.
+- The README test count (`489 passed`) was not changed. The suite now reports 490 because of tasks running in parallel, and task 25.3 owns that part of the README.
+### Blockers
+None.
+
+## Task 25.2: Make the generator-coverage property tests independent of test collection
+Requirements: 13.1, 13.5, 20.2
+### Root cause
+Hypothesis 6.170.17 mixes "local constants" into generation. `HypothesisProvider._maybe_draw_constant` (`hypothesis/internal/conjecture/providers.py`) replaces about 5% of primitive draws with a constant. The constant comes from either Hypothesis's built-in global pool or a local pool. `_get_local_constants()` builds the local pool from every module in `sys.modules` whose file `is_local_module_file` accepts: project files outside site-packages and not test files. Which `taperescue` modules are loaded depends on the test files pytest collected in the same process. Both coverage tests use `derandomize=True`, so their seed is fixed. A different pool still changes the drawn values and therefore the fixed sample.
+
+Evidence 1, the pool differs by collection. A diagnostic pytest plugin outside the repo (`/tmp/tr_diag/constdiag.py`) printed the local modules and pool size before each coverage test:
+| Collection | Local modules (besides the plugin and `/usr/lib/python3.12/sitecustomize.py`) | Pool |
+| --- | --- | --- |
+| `tests/engine tests/decoder_adapter tests/integration tests/properties` | 19 `taperescue` modules, including `taperescue.decoder_adapter.run`, `taperescue.decoder_adapter.schema`, `taperescue.fixtures.fsk` | 356 constants |
+| `tests/properties` | 15 `taperescue` modules, without those three | 165 constants |
+
+Evidence 2, removing the pool removes the failure. The same plugin with `TR_NO_LOCAL_CONSTANTS=1` replaced `_get_local_constants` with one returning an empty pool and cleared `CONSTANTS_CACHE`:
+| Command | Pool as loaded | Pool emptied |
+| --- | --- | --- |
+| `pytest -p constdiag tests/engine tests/decoder_adapter tests/integration tests/properties -q` | `1 failed, 190 passed` (`test_generator_reaches_interesting_cases`) | `191 passed` |
+| `pytest -p constdiag tests/engine tests/decoder_adapter tests/properties -q` | `160 passed` (the plugin's own constants changed the pool, so the 23.1 failure moved) | `160 passed` |
+
+Evidence 3, after the fix the sample no longer depends on collection. A second plugin (`/tmp/tr_diag/samplediag.py`) hashed the `repr` of a 200-example derandomized sample of each file's `sessions()` strategy. It took one hash before fixture setup (pool as loaded) and one during the test call (pool pinned by the new fixture). Each run used `-k "generator_reaches or generator_covers"`.
+| Collection | Pool | order_independence, as loaded / pinned | uef_roundtrip, as loaded / pinned |
+| --- | --- | --- | --- |
+| engine + decoder_adapter + integration + properties | 354 | `4da8426026fbb23d` / `6095b77d988315cc` | `a8cd01fe375a57e7` / `5a3e0954d7cb9e89` |
+| engine + decoder_adapter + properties | 191 | `734e1db2c8428bb7` / `6095b77d988315cc` | `b3cc64702b86c418` / `5a3e0954d7cb9e89` |
+| `tests/properties` | 163 | `734e1db2c8428bb7` / `6095b77d988315cc` | `41bd2af4fe1f469d` / `5a3e0954d7cb9e89` |
+| the two files only | 142 | `7f8c86630158194f` / `6095b77d988315cc` | `a6c75e49cf4f33ff` / `5a3e0954d7cb9e89` |
+| `tests` (full suite) | 868 | `4283babb96a05f27` / `6095b77d988315cc` | `e5256ff90b03a094` / `5a3e0954d7cb9e89` |
+
+Hypothesis has no public setting or environment variable that turns local constants off. A `grep` of the installed package for `environ` and for `_get_local_constants` found none.
+
+### Changes
+- `tests/properties/conftest.py` (new). Fixture `fixed_constant_pool` (from line 31). It clears `providers.CONSTANTS_CACHE`, uses `monkeypatch` to replace `providers._get_local_constants` with a function returning an empty `Constants()`, and restores both afterwards. Hypothesis's global constants are still used. On a Hypothesis without local constants (`HypothesisProvider` has no `_local_constants`; `pyproject.toml` allows `hypothesis>=6.100`), the fixture does nothing. If a version has local constants but renames `_get_local_constants` or `CONSTANTS_CACHE`, the fixture calls `pytest.fail` with a message, so it never silently draws an unpinned sample.
+- `tests/properties/test_prop_order_independence.py` lines 344-347: `test_generator_reaches_interesting_cases` takes the `fixed_constant_pool` fixture, and its docstring says why.
+- `tests/properties/test_prop_uef_roundtrip.py` lines 349-352: `test_generator_covers_the_cases` takes the same fixture, with the same docstring note.
+- Not changed: the thresholds, `max_examples`, `derandomize`, the strategies, every property test, the engine, and `.kiro/hooks/recovery-tests.json`. The property tests (`@SETTINGS @given(...)`) still run with the normal local pool, because the fixture applies only to the two coverage tests.
+
+Alternatives considered: running each coverage sample in a subprocess (public API only, but the pool would still depend on that process's imports and environment, and it adds startup time per test); a plain-Python generator mirroring each strategy (the check would then test a copy, not the strategy the properties use); `@seed(...)` (does not help, because the seed is already fixed and the pool contents are what change).
+
+### Commands and results
+Run from `/home/vamsik/TapeRescue`. Hypothesis 6.170.17. Decoder present at `build/decoder/ScanTape`.
+| Command | Result |
+| --- | --- |
+| `.venv/bin/python -m pytest tests/engine tests/decoder_adapter tests/integration tests/properties -q`, before the fix | `1 failed, 190 passed in 42.89s`: `test_generator_reaches_interesting_cases`, `('status:Missing', ...) assert 4 >= 5` (reproduces 23.1) |
+| Same command after the fix, run 1 | `191 passed in 39.43s` |
+| Same command after the fix, run 2 | `191 passed in 40.01s` |
+| `.venv/bin/python -m pytest tests/properties/test_prop_order_independence.py -q` | `3 passed in 9.12s` |
+| `.venv/bin/python -m pytest tests/properties/test_prop_uef_roundtrip.py -q` | `3 passed in 15.17s` |
+| `.venv/bin/python -m pytest tests/engine tests/decoder_adapter tests/properties -q` (the other 23.1 failure) | `160 passed in 37.08s` |
+| Hook command read from `.kiro/hooks/recovery-tests.json` and run with `bash -c`, `{"hook_event_name":"PostFileSave"}` on STDIN | Exit 0: `176 passed in 3.31s`, then `15 passed in 36.11s`, 40.4 s wall time |
+| `.venv/bin/python -m pytest -q` | `502 passed, 1 warning in 44.79s` |
+
+After the older-Hypothesis guard was added to the fixture, every command was run again:
+| Command | Result |
+| --- | --- |
+| Combined command, run 1 / run 2 | `191 passed in 29.25s` / `191 passed in 26.67s` |
+| `test_prop_order_independence.py` alone / `test_prop_uef_roundtrip.py` alone | `3 passed in 6.45s` / `3 passed in 9.49s` |
+| Hook command, as above | Exit 0: `176 passed in 2.14s`, then `15 passed in 25.26s` |
+| `.venv/bin/python -m pytest -q` | `502 passed, 1 warning in 30.11s` |
+| `samplediag` on `tests/properties` | Pinned hashes are unchanged: `6095b77d988315cc` and `5a3e0954d7cb9e89` |
+
+### Note on the hook
+The combined single call now passes, so the hook could use one pytest call: `.venv/bin/python -m pytest tests/engine tests/decoder_adapter tests/integration tests/properties -q`. As instructed, the hook file was not edited. Its description still says the coverage checks need a separate run, which is no longer true.
+
+### Blockers
+- None for this task. The fixture depends on private Hypothesis names (`HypothesisProvider._local_constants`, `providers._get_local_constants`, `providers.CONSTANTS_CACHE`). Only 6.170.17 was tested. The no-op path for older versions was not run.
+- The diagnostic plugins are in `/tmp/tr_diag/`, outside the repo.
+- Nothing was committed or pushed.
+
+## Task 25.3: Create parent directories for CLI output paths
+
+Requirements: 16.1, 16.3
+
+Run from `/home/vamsik/TapeRescue` with Python 3.12.3 (`.venv`) and the decoder at `build/decoder/ScanTape`. Nothing was installed in the repository venv, committed or pushed. The temporary copy used for the README check (`/tmp/tr253.BNhs`) was deleted.
+
+### Changes
+
+- `taperescue/cli.py`: new `_ensure_parent(out)` creates the missing parent directories of an output file. A parent that exists as a regular file fails with `error: cannot create directory <dir>: it exists and is not a directory`; any other `OSError` (for example a file further up the path, `Not a directory`) fails with `error: cannot create directory <dir>: <strerror>`. Both exit 1 (`EXIT_FAILURE`); no exit code changed.
+  - `_write_output` calls it, which covers `decode -o`, `recover --report` and the demo report.
+  - `_export` calls it only when the gate permits export, before `export_uef`, so the exporter's temporary file (`tempfile.mkstemp(dir=out.parent)`) and the rename have a directory. A refused export creates no UEF directory.
+  - `benchmark` calls it for `results.json` before `write_results` (which already ran `mkdir(parents=True)`), so a file in the way gives the same message as the other commands.
+  - `demo` no longer creates `--out` eagerly before decoding. The directory is created when `report.json` is written, so a decoder failure leaves no empty directory behind.
+  - `fixtures --out` was already handled by `generate()` (`out.mkdir(parents=True, exist_ok=True)`); unchanged.
+  - Directories are created only after argument validation, `_check_outputs` (output equal to an input or to another output) and recovery. `_inputs_unchanged` is unchanged.
+  - Module docstring documents the behaviour.
+- `tests/test_cli.py`: new section "missing parent directories of output paths (task 25.3)", 12 test cases.
+  - Without the decoder: `export -o x/y/out.uef` creates the dirs and leaves only the image (no temp file), and the image passes `verify-uef`; a refused `export` (exit 4) creates no directory; parent is a regular file (exit 1, "it exists and is not a directory") and a file further up (exit 1, "Not a directory"), with the file left unchanged; `recover --report new/r.json --uef a.wav` exits 2 and creates nothing; `fixtures --out x/y`.
+  - With the decoder (`needs_decoder`, skipped when `build/decoder/ScanTape` is missing): `decode -o x/y/obs.json`; `decode -o file/obs.json` (exit 1); two-capture `recover --report r/s/report.json --uef u/v/STARMAP.uef` (exit 0, image verified, only the image in its dir); single-capture `recover` with the same paths exits 4, writes the report into the newly created `r/s/` and does not create `u/`; `demo --out x/y/demo`; `benchmark --out x/y` (Quadbike env vars unset).
+- `README.md`: removed the `mkdir -p out` line from the step 5 "individual steps" block and replaced "The CLI does not create output directories:" with "The CLI creates missing output directories, such as `out/` below:". No other README line was changed by this task (the httpx wording change in step 1 visible in `git diff README.md` belongs to task 25.1).
+
+### Test runs
+
+| Command | Result |
+| --- | --- |
+| `.venv/bin/python -m pytest tests/test_cli.py -q -rs` | `57 passed in 2.65s`, no skips |
+| `.venv/bin/python -m pytest tests/integration/test_end_to_end.py -q -rs` | `21 passed in 2.91s` |
+| `.venv/bin/python -m pytest -q -rs` | `502 passed, 1 warning in 47.32s`, no skips. The warning is Starlette's `httpx` deprecation notice. 502 = 490 (task 24) + 12 new cases |
+
+### README commands re-run from a temporary copy
+
+`rsync` of the working tree (without `.venv`, `node_modules`, `demo-out`, `out`) to `/tmp/tr253.BNhs/repo`, fresh `python3 -m venv .venv` and `pip install -e '.[dev,server]'` (exit 0), then commands run under `env -i` with only the system `PATH` and `HOME`. No `out/` directory existed beforehand.
+
+| Command | Result |
+| --- | --- |
+| `.venv/bin/taperescue decode fixtures/starmap/damaged_a.wav -o out/damaged_a.json` | Exit 0, `wrote 8 observations for capture 2e09d3ce…0b to out/damaged_a.json`; `out/` was created |
+| `.venv/bin/taperescue recover fixtures/starmap/damaged_a.wav fixtures/starmap/damaged_b.wav --report out/report.json --uef out/STARMAP.uef` | Exit 0, `export: permitted`, `reconstructed blocks in this image: 6`, `wrote out/STARMAP.uef` |
+| `.venv/bin/taperescue verify-uef out/STARMAP.uef --reference fixtures/starmap/reference_payloads.json` | Exit 0, `verified: 8 blocks match the reference`, payload SHA-256 `4ac213a0…6e3a`; `sha256sum out/STARMAP.uef` = `e7041f16…2045`, the value in the README |
+| `recover fixtures/starmap/damaged_a.wav --report out2/r.json --uef out2/STARMAP.uef` | Exit 4, `error: export refused: block 6: single_read`; `out2/` holds only `r.json`, matching the README sentence about one capture |
+| `demo --out n/demo/x`, `benchmark --out n/bench/x`, `fixtures --out n/fx/x` | All exit 0; the nested directories were created with the expected files |
+| `recover fixtures/starmap/damaged_a.wav --report n/f/r.json` with `n/f` a regular file | Exit 1, `error: cannot create directory n/f: it exists and is not a directory` |
+| `recover fixtures/starmap/damaged_a.wav --report n/new/r.json --uef fixtures/starmap/damaged_a.wav` | Exit 2, `error: the UEF output must not be the input capture`; `n/new` was not created |
+
+### Blockers
+
+None.
+
+## Task 25.4: Update design.md for the UEF carrier lengths
+Requirements: 11.3
+### Changes
+- `.kiro/specs/tape-rescue/design.md`, UEF exporter "Output layout" list (lines 345-348):
+  - Per-block carrier: "5100 cycles before block 0, 1800 cycles before other blocks" became "12240 cycles, 5.1 s, before block 0; 2160 cycles, 0.9 s, before other blocks".
+  - Trailing carrier: now states 4800 cycles (2.0 s, the same as the fixture trailer).
+  - New paragraph after the list: chunk `0x0110` is a 16-bit count of cycles at twice the base frequency (2400 Hz at 1200 Hz), citing fileformats.org, "UEF file format: Chunks" (https://fileformats.org/system/floppy/uef/chunks/), which cites the UEF 0.10 specification. It derives 5.1 × 2400 = 12240 and 0.9 × 2400 = 2160 and names the constants `FIRST_CARRIER_CYCLES`, `OTHER_CARRIER_CYCLES` and `TRAILING_CARRIER_CYCLES` in `taperescue/uef/exporter.py`.
+- `.kiro/specs/tape-rescue/tasks.md`, task 9.4 exporter bullet (line 170) only: "carrier chunks (5100 cycles before block 0, 1800 before others, trailing tone)" became "carrier chunks in UEF chunk `0x0110` units of 2400 Hz cycles (12240 cycles = 5.1 s before block 0, 2160 = 0.9 s before others, 4800 = 2.0 s trailing tone)". No checkbox, task number or other task was changed.
+- `.kiro/specs/tape-rescue/requirements.md`: no change. It has no match for `5100`, `1800`, `carrier` or `cycles`.
+### Values checked against the code
+`taperescue/uef/exporter.py`: `FIRST_CARRIER_CYCLES = 12240`, `OTHER_CARRIER_CYCLES = 2160`, `TRAILING_CARRIER_CYCLES = 4800`. The design's FSK section (line 441) already gave the same durations (5.1 s, 0.9 s, 2 s), so the two sections now agree.
+### Commands and results
+| Command | Result |
+| --- | --- |
+| `grep -nE '5100\|1800' design.md tasks.md requirements.md` | Only match: tasks.md line 437, the text of task 25.4 itself |
+| `.venv/bin/python -m pytest tests/test_uef_exporter.py -q` | `13 passed in 0.36s` |
+### Notes
+- The remaining `5100/1800` in tasks.md is the description of task 25.4, which describes the change. I left it as written.
+- Nothing was committed.
+### Blockers
+None.
+
+## Task 25.5: Checkpoint: follow-up fixes
+
+Requirements: 22.1
+
+Run from `/home/vamsik/TapeRescue` on 2026-11-23 with Python 3.12.3 (`.venv`), Hypothesis 6.170.17, Node v22.19.0, npm 10.9.3, Docker image `taperescue:local` and the decoder at `build/decoder/ScanTape`. Every check below was re-run in this task. Files changed: `.kiro/hooks/recovery-tests.json` (command and description), `README.md` (one line), this entry and the regenerated `VERIFICATION_LOG.md`. No code or test file was changed. Scratch files in `/tmp` were deleted and both smoke containers were removed. Nothing was installed, committed or pushed.
+
+### (a) Test runs
+
+| Command | Result |
+| --- | --- |
+| `.venv/bin/python -m pytest -q -rs` | `502 passed, 1 warning in 30.86s`. No skips, so every decoder-dependent test ran. The warning is Starlette's notice that `httpx` with `starlette.testclient` is deprecated. 502 = 490 (task 24) + 12 CLI cases from task 25.3 |
+| `.venv/bin/python -m pytest tests/engine tests/decoder_adapter tests/integration tests/properties -q` | `191 passed in 27.68s`. This combined call failed at task 24 (`1 failed, 190 passed`) and passes after task 25.2 |
+| `.venv/bin/python -m pytest tests/engine tests/decoder_adapter tests/properties -q` (the other variant that failed in task 23.1) | `160 passed in 30.02s` |
+| `cd web && npm test` (`vitest --run`, vitest 5.1.1) | `Test Files 5 passed (5)`, `Tests 27 passed (27)`, 2.11 s |
+| Hook command before the edit, read from `.kiro/hooks/recovery-tests.json` (`hooks[0].action.command`) and run with `bash -c`, `{"hook_event_name":"PostFileSave"}` on STDIN | Two pytest calls: `176 passed in 3.29s`, then `15 passed in 36.59s`. Exit 0, 41 s wall time |
+| Hook command after the edit (see (d)), same method, run twice | `191 passed in 32.90s`, exit 0, 33 s wall; `191 passed in 26.52s`, exit 0, 27 s wall |
+
+### (b) Container smoke
+
+The image was not rebuilt, because it already matches the working tree.
+
+| Check | Result |
+| --- | --- |
+| `docker image inspect taperescue:local` | `sha256:1b37ae63aebf475cc089ea72ab7d724dde7e842356bf0b93b327f81833a352bf`, created 2026-11-23T10:05:15+05:30. This is the image from the second rebuild in task 25.1 |
+| `find LICENSE THIRD_PARTY_NOTICES.md Dockerfile .dockerignore pyproject.toml LICENSES server taperescue third_party/AtomTapeUtils/LICENSE.txt web/src web/index.html web/package.json -newermt <image created>` | No files. The latest relevant mtimes are `taperescue/cli.py` 10:03:19 (task 25.3), `THIRD_PARTY_NOTICES.md` 10:04:45 and `Dockerfile` 10:02:20, all before the build |
+| SHA-256 of every `taperescue/**/*.py` in the image's `site-packages` and every `server/**/*.py` in `/app`, compared with the working tree (`LC_ALL=C sort`, `diff`) | Identical, 28 files, including `cli.py` `db1202b5…ac5a9f` |
+| SHA-256 of `/app/licenses/{LICENSE,THIRD_PARTY_NOTICES.md,AtomTapeUtils-LICENSE.txt,LICENSES/LGPL-2.1.txt}` against `LICENSE`, `THIRD_PARTY_NOTICES.md`, `third_party/AtomTapeUtils/LICENSE.txt`, `LICENSES/LGPL-2.1.txt` | All four identical |
+| `docker run -d --name taperescue-smoke255 -p 127.0.0.1:18055:8000 taperescue:local` | Started |
+| `curl -D - http://127.0.0.1:18055/` | `HTTP/1.1 200 OK`, `content-type: text/html; charset=utf-8`, `content-security-policy: default-src 'self'`, `x-content-type-options: nosniff`, `referrer-policy: no-referrer` |
+| `curl -X POST /api/sample` | `200`. `report.export` = `{'permitted': True, 'blockers': [], 'messages': {}, 'reconstructed_blocks': [6]}` |
+| `report.blocks` (read again from a second container, `taperescue-smoke255b`, because the first script looked for the wrong key name) | 8 entries. Entry 7 of 8 (block 6) has status `Reconstructed · CRC match`, label `CRC match is evidence, not proof of the original bytes`. The other seven are `Intact`. The script printed `status` and `label` but not `block_no`. The block number comes from the list position and from `export.reconstructed_blocks` |
+| `curl -D - /api/sessions/$SID/tape.uef`; `sha256sum` | `200 OK`, `content-disposition: attachment; filename="STARMAP.uef"`, `content-type: application/octet-stream`. SHA-256 `e7041f167d9e33e192604e0eeca7f4400d4af3a98932bea43eb9d6c3de1a2045`, the expected value |
+| `docker exec … ls -l /app/licenses /app/licenses/LICENSES` | `AtomTapeUtils-LICENSE.txt` 1069 bytes, `LICENSE` 1072, `THIRD_PARTY_NOTICES.md` 15259, `LICENSES/LGPL-2.1.txt` 26419. All owned by root and world-readable |
+| `docker exec … python -c 'importlib.util.find_spec(...)'` for httpx, httpcore, certifi; `pip list --format=freeze \| grep -icE '^(httpx\|httpcore\|certifi)='` | All `False`; `0` |
+| `docker exec … id` | `uid=10001(taperescue) gid=10001(taperescue) groups=10001(taperescue)`. Not root |
+| `docker exec … find / -xdev \( -iname "*.rom" -o -iname "*jsbeeb*" \) \| wc -l` | `0` |
+| `docker stop`, `docker rm` for both containers; `docker ps -a --filter name=taperescue-smoke255 -q \| wc -l` | `0` containers left |
+
+### (c) Open issues from task 24
+
+| Issue | Status | Re-check |
+| --- | --- | --- |
+| 1. Generator-coverage tests depend on which tests share a pytest process | Resolved (task 25.2) | Combined call `191 passed`, the 23.1 variant `160 passed`, full suite `502 passed` ((a)) |
+| 2. Licence material in the container | Resolved (task 25.1) | (b): four licence files in `/app/licenses/`, identical to the repository. `LICENSES/LGPL-2.1.txt` SHA-256 `20e50fe7…5d95`, matching `THIRD_PARTY_NOTICES.md` line 55. `Dockerfile` lines 94–96 copy them. `pyproject.toml` lists `httpx>=0.27` under `dev`, not `server`. httpx, httpcore and certifi are absent from the image and appear in the notices only in the dev section (lines 96, 155–157) |
+| 3. CLI does not create parent directories for output paths | Resolved (task 25.3) | The task 24 repro, with a deeper UEF path: `taperescue recover fixtures/starmap/clean.wav --report /tmp/t255/sub/r.json --uef /tmp/t255/u/v/clean.uef` exits 0 and creates `/tmp/t255/sub/r.json` and `/tmp/t255/u/v/clean.uef`. With `/tmp/t255/f` a regular file, `--report /tmp/t255/f/r.json` exits 1 with `error: cannot create directory /tmp/t255/f: it exists and is not a directory` |
+| 4. UEF carrier lengths in the design | Resolved (task 25.4) | `design.md` lines 345–348: 12240 cycles (5.1 s) before block 0, 2160 (0.9 s) before other blocks, 4800 (2.0 s) trailing, in chunk `0x0110` units of 2400 Hz cycles. `tasks.md` task 9.4 (line 170) says the same. This matches `taperescue/uef/exporter.py` lines 76–78. `grep -nE '5100\|1800'` finds no carrier value in either file; the only `5100/1800` is the wording of task 25.4 itself (tasks.md line 437) |
+| 5. Hook firing on save not observed | Still open | No file under `taperescue/engine/` or `taperescue/decoder_adapter/` was saved in this task, so no hook run was observed. To close it: in a Kiro session, save a file under `taperescue/engine/` and record the hook run |
+
+### (d) Edits in this checkpoint
+
+- `.kiro/hooks/recovery-tests.json`:
+  - `action.command`: from `.venv/bin/python -m pytest tests/engine tests/decoder_adapter tests/integration -q && .venv/bin/python -m pytest tests/properties -q` to `.venv/bin/python -m pytest tests/engine tests/decoder_adapter tests/integration tests/properties -q`.
+  - `description`: the sentences saying the coverage checks need their own pytest run were removed. It now ends "… and the property tests, in one pytest run."
+  - `name`, `trigger` (`PostFileSave`), `matcher` (`(^|/)taperescue/(decoder_adapter|engine)/.+\.py$`) and `timeout` (180) are unchanged (`git diff`). `python -m json.tool` parses the file. The new command was run twice ((a)).
+- `README.md` line 82 (step 4 expected output): `489 passed, 1 warning in 46.97s` changed to `502 passed, 1 warning in 30.86s`, the count observed in (a).
+- README lines checked and left unchanged, because tasks 25.1 and 25.3 already updated them: line 39 (httpx in the `dev` extra) and line 139 ("The CLI creates missing output directories", with no `mkdir -p out` line). A `grep` for `mkdir`, `httpx`, `certifi`, `httpcore`, `separate pytest`, `5100`, `1800` found nothing else that tasks 25.1–25.4 contradict. Line 85 ("run with fixed seeds") is still true: the coverage tests use `derandomize=True`.
+
+### (e) Verification log and pending items
+
+| Command | Result |
+| --- | --- |
+| Python script: parse `- [x]`, `- [ ]`, `- [-]` and optional `*` task lines in `tasks.md` and compare leaf task ids with `verification/entries/*.md` (run before writing this entry) | 55 completed non-optional leaf tasks (the 50 from task 24, plus 24, 25.1, 25.2, 25.3, 25.4). Missing entries: none. Entries with no matching task: none. 25 optional tasks not run. 25.5 is in progress (this entry). Parent task 25 is unchecked and has no entry of its own |
+| `grep -nE '^## P[0-9]\|^- Status:' verification/pending.md`, plus an `awk` check of the line after each `- Evidence:` | P1–P6 present, each `- Status: pending`. All six `- Evidence:` fields (lines 15, 26, 36, 45, 56, 64) are empty, and the next line is blank. `git status` shows `verification/pending.md` unchanged |
+| README "Status and pending items" | P1–P6 each `Pending`, linking to `verification/pending.md` |
+| `.venv/bin/python scripts/collect_verification.py` (after writing this entry) | `wrote /home/vamsik/TapeRescue/VERIFICATION_LOG.md`, exit 0. It was run once more after this row was filled in, so the log contains the final text of this entry |
+
+### Not verified
+
+- P1–P6 have not been performed and nothing is claimed for them.
+- The web UI has still not been checked in a real browser.
+- The `tasks.md` parser in (e) is an ad-hoc script, not part of the repository.
+
+### Blockers
+
+None for the automated checks. The external steps P1–P6 remain pending in `verification/pending.md`, and open issue 5 remains open.
+
 # Pending Items
 
 Manual or external steps that have not been performed. No result is claimed for any item until its evidence field is filled in with a link, file path, or log excerpt and its status is changed. Commands are run from the repository root with the virtual environment's `taperescue` (`.venv/bin/taperescue`) and the decoder built by `scripts/build_decoder.sh` at `build/decoder/ScanTape`.

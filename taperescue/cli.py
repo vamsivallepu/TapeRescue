@@ -38,6 +38,13 @@ Commands so far:
 the run and fail with exit 11 if a digest changed. Inputs are only opened for
 reading (Requirement 10.7). Output paths may not name an input file.
 
+Missing parent directories of an output file (``decode -o``, ``recover
+--report/--uef``, ``export -o``, ``demo --out``, ``benchmark --out``,
+``fixtures --out``) are created just before that file is written, after the
+arguments and the output-versus-input checks have passed. A UEF directory is
+created only when the gate permits export. A parent that exists as a regular
+file fails with exit 1.
+
 Every failure prints ``error: <reason>`` to stderr and returns a non-zero exit
 status (Requirement 16.3). The status identifies the kind of failure:
 
@@ -183,7 +190,24 @@ def _validate_capture(wav: Path) -> None:
         raise CliError(f"{wav}: {exc.message}", EXIT_CAPTURE_REJECTED) from exc
 
 
+def _ensure_parent(out: Path) -> None:
+    """Create the missing parent directories of an output file.
+
+    Called just before the file is written, after argument validation and the
+    output-versus-input checks, so a refused run leaves no directories behind.
+    """
+    parent = out.parent
+    try:
+        parent.mkdir(parents=True, exist_ok=True)
+    except FileExistsError:
+        raise CliError(f"cannot create directory {parent}: it exists and is not a directory"
+                       ) from None
+    except OSError as exc:
+        raise CliError(f"cannot create directory {parent}: {exc.strerror or exc}") from exc
+
+
 def _write_output(text: str, out: Path) -> None:
+    _ensure_parent(out)
     try:
         out.write_text(text, encoding="utf-8")
     except OSError as exc:
@@ -380,6 +404,9 @@ def _export(result: RecoveryResult, decision: ExportDecision, out: Path) -> None
                   f"({RECONSTRUCTED_LABEL})")
         else:
             print("reconstructed blocks in this image: none")
+        # Only a permitted export writes the image, so only then is its
+        # directory created. The exporter's temporary file lives there too.
+        _ensure_parent(out)
     try:
         export_uef(result, decision, out)
     except ExportRefused as exc:
@@ -625,10 +652,7 @@ def _cmd_demo(args: argparse.Namespace) -> int:
         _validate_capture(wav)
     reference = _load_reference(reference_path)
     _check_outputs([*wavs, reference_path], {"UEF output": uef, "report": report}, "fixture")
-    try:
-        out_dir.mkdir(parents=True, exist_ok=True)
-    except OSError as exc:
-        raise CliError(f"cannot create {out_dir}: {exc.strerror or exc}") from exc
+    # ``out_dir`` is created when the report is written (``_write_output``).
 
     n = DAMAGED_BLOCK
     with _inputs_unchanged([*wavs, reference_path]):
@@ -719,6 +743,7 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
             )
         except PairingRejected as exc:
             raise CliError(exc.message, EXIT_NO_ANCHOR) from exc
+    _ensure_parent(out_dir / RESULTS_JSON)
     try:
         json_path, md_path = write_results(results, out_dir)
     except OSError as exc:

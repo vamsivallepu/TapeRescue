@@ -6,6 +6,8 @@
 Two-capture ``recover``/``export``, ``--report``, ``--intact-only``, input
 digest checks and ``demo``: task 16.1 (Requirements 10.7, 10.8, 14.5, 16.1,
 16.2, 16.3).
+Creating missing parent directories of output paths: task 25.3
+(Requirements 16.1, 16.3).
 """
 from __future__ import annotations
 
@@ -590,3 +592,118 @@ def test_demo_end_to_end(capsys, tmp_path):
     assert doc["recovered_payload_sha256"] == reference["program_sha256"]
     assert (out / "STARMAP.uef").is_file()
     assert _digests([*DAMAGED, REFERENCE]) == before
+
+
+# --- missing parent directories of output paths (task 25.3) ------------------
+#
+# Requirements 16.1, 16.3.
+
+def _tree(root: Path) -> list[str]:
+    return sorted(str(p.relative_to(root)) for p in root.rglob("*"))
+
+
+def test_export_creates_missing_output_directories(capsys, tmp_path):
+    obs = _observations_file(tmp_path / "obs.json")
+    out = tmp_path / "x" / "y" / "out.uef"
+    code, stdout, _ = _run(capsys, ["export", "--observations", str(obs), "-o", str(out)])
+    assert code == 0 and f"wrote {out}" in stdout
+    # Only the image is left in the new directory: no exporter temporary file.
+    assert list(out.parent.iterdir()) == [out]
+    ref = _reference_file(tmp_path / "ref.json", SYNTH_PROGRAM)
+    assert cli.main(["verify-uef", str(out), "--reference", str(ref)]) == 0
+
+
+def test_refused_export_creates_no_directory(capsys, tmp_path):
+    obs = _observations_file(tmp_path / "obs.json", damage_block=1)
+    out = tmp_path / "new" / "out.uef"
+    code, _, err = _run(capsys, ["export", "--observations", str(obs), "-o", str(out)])
+    _assert_error(code, err, cli.EXIT_EXPORT_REFUSED, "block 1: single_read")
+    assert not (tmp_path / "new").exists()
+
+
+@pytest.mark.parametrize("parts, fragment", [
+    (("file", "out.uef"), "it exists and is not a directory"),
+    (("file", "sub", "out.uef"), "Not a directory"),
+])
+def test_output_parent_is_a_regular_file(capsys, tmp_path, parts, fragment):
+    obs = _observations_file(tmp_path / "obs.json")
+    (tmp_path / "file").write_text("x", encoding="ascii")
+    out = tmp_path.joinpath(*parts)
+    code, _, err = _run(capsys, ["export", "--observations", str(obs), "-o", str(out)])
+    _assert_error(code, err, cli.EXIT_FAILURE, "cannot create directory")
+    assert fragment in err
+    assert (tmp_path / "file").read_text(encoding="ascii") == "x"
+
+
+def test_output_equal_to_input_creates_no_directory(capsys, tmp_path):
+    wav = _wav(tmp_path / "a.wav")
+    before = _tree(tmp_path)
+    code, _, err = _run(capsys, ["recover", str(wav), "--report",
+                                 str(tmp_path / "new" / "r.json"), "--uef", str(wav)])
+    _assert_error(code, err, cli.EXIT_USAGE, "must not be the input capture")
+    assert _tree(tmp_path) == before
+
+
+def test_fixtures_creates_nested_out(capsys, tmp_path):
+    out = tmp_path / "x" / "y"
+    code, _, _ = _run(capsys, ["fixtures", "--out", str(out)])
+    assert code == 0
+    assert (out / "clean.wav").read_bytes() == CLEAN_WAV.read_bytes()
+
+
+@needs_decoder
+def test_decode_creates_missing_output_directories(capsys, tmp_path):
+    out = tmp_path / "x" / "y" / "obs.json"
+    code, _, _ = _run(capsys, ["decode", str(CLEAN_WAV), "--decoder", str(DECODER),
+                               "-o", str(out)])
+    assert code == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["capture_id"] == capture_id_for(CLEAN_WAV)
+
+
+@needs_decoder
+def test_decode_output_parent_is_a_regular_file(capsys, tmp_path):
+    (tmp_path / "file").write_text("x", encoding="ascii")
+    code, _, err = _run(capsys, ["decode", str(CLEAN_WAV), "--decoder", str(DECODER),
+                                 "-o", str(tmp_path / "file" / "obs.json")])
+    _assert_error(code, err, cli.EXIT_FAILURE, "it exists and is not a directory")
+
+
+@needs_decoder
+def test_recover_creates_report_and_uef_directories(capsys, tmp_path):
+    report = tmp_path / "r" / "s" / "report.json"
+    uef = tmp_path / "u" / "v" / "STARMAP.uef"
+    code, _, _ = _run(capsys, ["recover", *map(str, DAMAGED), "--report", str(report),
+                               "--uef", str(uef), "--decoder", str(DECODER)])
+    assert code == 0
+    assert json.loads(report.read_text(encoding="utf-8"))["export"]["permitted"] is True
+    assert list(uef.parent.iterdir()) == [uef]
+    assert cli.main(["verify-uef", str(uef), "--reference", str(REFERENCE)]) == 0
+
+
+@needs_decoder
+def test_refused_recover_writes_report_in_new_directory_but_no_uef(capsys, tmp_path):
+    report = tmp_path / "r" / "s" / "report.json"
+    uef = tmp_path / "u" / "v" / "STARMAP.uef"
+    code, _, err = _run(capsys, ["recover", str(DAMAGED[0]), "--report", str(report),
+                                 "--uef", str(uef), "--decoder", str(DECODER)])
+    _assert_error(code, err, cli.EXIT_EXPORT_REFUSED, "block 6: single_read")
+    assert json.loads(report.read_text(encoding="utf-8"))["export"]["permitted"] is False
+    assert not (tmp_path / "u").exists()
+
+
+@needs_decoder
+def test_demo_creates_nested_out(capsys, tmp_path):
+    out = tmp_path / "x" / "y" / "demo"
+    code, _, _ = _run(capsys, ["demo", "--out", str(out), "--decoder", str(DECODER)])
+    assert code == 0
+    assert sorted(p.name for p in out.iterdir()) == ["STARMAP.uef", "report.json"]
+
+
+@needs_decoder
+def test_benchmark_creates_nested_out(capsys, tmp_path, monkeypatch):
+    monkeypatch.delenv("QUADBIKE_LSBLOCKS", raising=False)
+    monkeypatch.delenv("QUADBIKE_BIN", raising=False)
+    out = tmp_path / "x" / "y"
+    code, _, _ = _run(capsys, ["benchmark", "--out", str(out), "--decoder", str(DECODER)])
+    assert code == 0
+    assert sorted(p.name for p in out.iterdir()) == ["results.json", "results.md"]
