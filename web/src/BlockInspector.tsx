@@ -233,12 +233,21 @@ function OffsetsTable({ report, block, choices, showChosen, name }: OffsetsProps
           {choices.map((choice) => (
             <tr key={choice.offset}>
               <th scope="row">{choice.offset}</th>
-              {captureIds.map((cid) => (
-                <td key={cid}>{formatObserved(choice.observed[cid])}</td>
-              ))}
+              {captureIds.map((cid) => {
+                // On a reconstructed block, a capture's byte is either the one
+                // chosen ("kept") or the damaged one that lost ("discarded").
+                const seen = choice.observed[cid];
+                const kept = showChosen && choice.chosen !== null && seen === choice.chosen;
+                const cls = !showChosen || seen === undefined ? undefined : kept ? "byte-kept" : "byte-discarded";
+                return (
+                  <td key={cid} className={cls}>
+                    {formatObserved(seen)}
+                  </td>
+                );
+              })}
               {showChosen && (
                 <>
-                  <td>{choice.chosen === null ? "None" : formatByte(choice.chosen)}</td>
+                  <td className="inspector-chosen">{choice.chosen === null ? "None" : formatByte(choice.chosen)}</td>
                   <td>{choice.supporting_capture_ids.map(name).join(", ")}</td>
                 </>
               )}

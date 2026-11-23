@@ -479,6 +479,13 @@ Each task in this section writes `verification/entries/<task-id>.md` under the v
     - Use the `personal` AWS profile only. One Lightsail container service (Micro, scale 1) serves the UI and the API from the existing image, so sessions stay on one node. Add `scripts/deploy_aws_lightsail.sh`, deploy, check the public HTTPS URL with **Try sample**, the tape and report downloads and a real two-capture upload, record the URL, image digest and cost in P5 and the README, and document teardown
     - _Requirements: 17.1, 17.6, 19.1, 22.2_
 
+### Kiroween theme
+
+- [x] 28. Apply the Halloween theme to the web UI and redeploy
+  - [x] 28.1 Restyle the UI as a lab for dead cassettes without changing what it reports
+    - Dark CRT theme with system fonts and CSS or inline SVG only (CSP `default-src 'self'`), a header cassette whose reels spin while decoding, strips drawn as magnetic tape (torn for CRC failed, stitched and glowing for Reconstructed), a toe-tag inspector that marks kept and discarded bytes, a verdict line built from the report, a green-screen JSBeeb help with BASIC line numbers, and reduced-motion and high-contrast fallbacks. Keep the design table labels and colours, the evidence caveat and every accessible name; check in headless Chrome and redeploy to Lightsail
+    - _Requirements: 18.1, 18.2, 18.3, 19.1_
+
 ## Notes
 
 - Sub-tasks marked with `*` are optional and can be skipped for a faster MVP.
@@ -528,7 +535,8 @@ Each task in this section writes `verification/entries/<task-id>.md` under the v
     { "id": 33, "tasks": ["26.4"] },
     { "id": 34, "tasks": ["26.5"] },
     { "id": 35, "tasks": ["26.6"] },
-    { "id": 36, "tasks": ["27.1"] }
+    { "id": 36, "tasks": ["27.1"] },
+    { "id": 37, "tasks": ["28.1"] }
   ]
 }
 ```

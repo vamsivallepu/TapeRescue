@@ -1,41 +1,19 @@
-/* Download bar, reconstructed-block dialog, JSBeeb help, upload area. */
+/* Download bar, reconstructed-block dialog, JSBeeb help, upload area.
+   Button styles live in theme.css. */
 .downloads {
   margin: 1.5rem 0;
 }
 .downloads-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.downloads button,
-.upload button,
-.downloads-dialog button {
-  font: inherit;
-  padding: 0.4rem 0.9rem;
-  border: 1px solid #1a1a1a;
-  border-radius: 4px;
-  background: #ffffff;
-  color: #1a1a1a;
-  cursor: pointer;
-}
-.downloads button:disabled,
-.upload button:disabled {
-  cursor: not-allowed;
-  color: #616161;
-  border-color: #9e9e9e;
-  background: #eeeeee;
-}
-.downloads button:focus-visible,
-.upload button:focus-visible,
-.downloads-dialog button:focus-visible {
-  outline: 3px solid #1565c0;
-  outline-offset: 2px;
+  gap: 0.6rem;
 }
 .downloads-blockers {
   margin-top: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-left: 4px solid #c62828;
-  background: #ffffff;
+  padding: 0.6rem 0.9rem;
+  border-left: 4px solid var(--blood);
+  border-radius: 0 6px 6px 0;
+  background: var(--surface);
 }
 .downloads-blockers p {
   margin: 0 0 0.25rem;
@@ -45,39 +23,153 @@
 }
 .downloads-error,
 .errors {
-  color: #b71c1c;
+  color: var(--blood);
 }
+
+/* The last chance to back out before the patient leaves the lab. */
 .downloads-dialog {
   max-width: 36rem;
-  border: 1px solid #1a1a1a;
-  border-radius: 6px;
-  padding: 1rem 1.25rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid rgba(125, 249, 255, 0.6);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(125, 249, 255, 0.18),
+    0 20px 50px rgba(0, 0, 0, 0.6);
 }
 .downloads-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.45);
+  background:
+    radial-gradient(ellipse at center, rgba(40, 10, 60, 0.55), rgba(5, 2, 10, 0.88));
+  backdrop-filter: blur(3px) saturate(0.6);
 }
 .downloads-dialog h2 {
   font-size: 1.1rem;
   margin-top: 0;
+  color: var(--ecto);
 }
 .downloads-dialog-buttons {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.6rem;
   justify-content: flex-end;
 }
+.downloads-dialog-buttons button:first-child {
+  border-color: #ffb46b;
+  background: linear-gradient(180deg, #ffab55, #e8741c);
+  color: #1a0d02;
+  font-weight: 700;
+}
+
+/* The slab: where recordings are laid out before the operation. */
 .upload {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem 0.9rem;
   margin: 1rem 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background:
+    linear-gradient(90deg, rgba(88, 242, 154, 0.05), transparent 30%),
+    var(--surface);
 }
+.upload label {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.upload input[type="file"] {
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+}
+.upload input[type="file"]::file-selector-button {
+  font: inherit;
+  margin-right: 0.6rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px dashed var(--lavender);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--lavender);
+  cursor: pointer;
+}
+.upload input[type="file"]:focus-visible {
+  outline: 3px solid var(--ecto);
+  outline-offset: 2px;
+}
+
 .captures-list {
   padding-left: 1.25rem;
+  color: var(--muted);
 }
+.captures-list strong {
+  color: var(--text);
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+/* JSBeeb help, drawn as a green-screen monitor showing a BASIC listing:
+   the steps are numbered 10, 20, 30, like program lines. */
 .jsbeeb {
-  margin: 1.5rem 0;
+  margin: 2rem 0 1rem;
+  padding: 1.1rem 1.4rem 1.2rem;
+  border: 10px solid #1d1626;
+  border-radius: 18px;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.25) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, #072314 0%, #03100a 100%);
+  color: var(--phosphor);
+  box-shadow:
+    inset 0 0 40px rgba(0, 0, 0, 0.8),
+    0 0 0 1px #3b3048,
+    0 0 30px rgba(88, 242, 154, 0.08);
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  text-shadow: 0 0 5px rgba(88, 242, 154, 0.45);
 }
 .jsbeeb h2 {
+  margin: 0 0 0.6rem;
   font-size: 1rem;
+  color: var(--phosphor);
+}
+.jsbeeb ol {
+  margin: 0;
+  padding-left: 3.2rem;
+}
+.jsbeeb li::marker {
+  content: counter(list-item) "0  ";
+  color: #b8ffd6;
+}
+.jsbeeb li {
+  margin: 0.15rem 0;
+}
+/* A blinking block cursor after the listing. */
+.jsbeeb ol::after {
+  content: "";
+  display: inline-block;
+  width: 0.6em;
+  height: 1.05em;
+  margin: 0.35rem 0 0 -2.2rem;
+  background: var(--phosphor);
+  box-shadow: 0 0 6px var(--phosphor);
+  animation: cursor-blink 1.1s steps(1, end) infinite;
+}
+@keyframes cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+.jsbeeb a {
+  color: #b8ffd6;
+}
+.jsbeeb a:hover {
+  color: #ffffff;
+}
+.jsbeeb code,
+.jsbeeb kbd {
+  color: #ffffff;
+  background: rgba(88, 242, 154, 0.12);
+  border-color: rgba(88, 242, 154, 0.35);
 }

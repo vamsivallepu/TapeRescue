@@ -16,8 +16,12 @@ import { CaptureStrip } from "./CaptureStrip.tsx";
 import { safeCassetteName } from "./download.ts";
 import { DownloadBar } from "./DownloadBar.tsx";
 import { JsBeebHelp } from "./JsBeebHelp.tsx";
+import { Heartbeat, LabHeader } from "./LabHeader.tsx";
 import { MergedStrip } from "./MergedStrip.tsx";
+import { Verdict } from "./Verdict.tsx";
 import "./downloads.css";
+
+export const REPO_URL = "https://github.com/vamsivallepu/TapeRescue";
 
 /** First merged block that is not Intact, so the screen opens on the interesting block. */
 export function defaultBlock(report: Report): number | null {
@@ -94,10 +98,12 @@ export default function App() {
   const names = envelope ? displayNames(envelope) : {};
   const program = envelope ? cassetteName(envelope) : null;
 
+  const idle = envelope === null && busy === null && errors.length === 0 && message === null;
+
   return (
+    <>
     <main className="app">
-      <h1>TapeRescue</h1>
-      <p>Recover BBC Micro cassette programs from one or two WAV captures (44,100 Hz, 16-bit, mono PCM).</p>
+      <LabHeader busy={busy !== null} />
 
       <form className="upload" onSubmit={onSubmit} aria-label="Upload captures">
         <label htmlFor="captures-input">Captures (one or two WAV files)</label>
@@ -112,7 +118,12 @@ export default function App() {
         <button type="submit" disabled={busy !== null || files.length < 1 || tooMany}>
           {busy === "upload" ? "Recovering…" : "Recover"}
         </button>
-        <button type="button" disabled={busy !== null} onClick={() => void run("sample", runSample)}>
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={busy !== null}
+          onClick={() => void run("sample", runSample)}
+        >
           {busy === "sample" ? "Running sample…" : "Try sample"}
         </button>
       </form>
@@ -121,7 +132,18 @@ export default function App() {
           Select one or two WAV captures ({files.length} selected).
         </p>
       )}
-      {busy !== null && <p role="status">Decoding and recovering. This can take a few seconds per capture.</p>}
+      {busy !== null && (
+        <p role="status">
+          <Heartbeat />
+          Decoding and recovering. This can take a few seconds per capture.
+        </p>
+      )}
+      {idle && (
+        <p className="slab-empty">
+          The slab is empty. Load one or two recordings of the same cassette, or press <strong>Try sample</strong>{" "}
+          for two recordings of STARMAP that both die at block 6.
+        </p>
+      )}
       {message !== null && (
         <p className="errors" role="alert">
           {message}
@@ -143,6 +165,7 @@ export default function App() {
             />
           ))}
           <MergedStrip report={report} selectedBlock={selected} onSelect={setSelected} />
+          <Verdict report={report} decision={envelope.export} displayNames={names} />
           <BlockInspector report={report} blockNo={selected} displayNames={names} />
           <DownloadBar
             key={envelope.session_id}
@@ -156,6 +179,17 @@ export default function App() {
 
       <JsBeebHelp programName={program ?? undefined} />
     </main>
+    <footer className="site-footer">
+      <p>
+        STARMAP and its recordings are generated fixtures made for this project; no real cassettes were harmed.
+        TapeRescue bundles no BBC Micro ROMs and never sends your recordings to the emulator.{" "}
+        <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+          Source on GitHub
+        </a>
+        .
+      </p>
+    </footer>
+    </>
   );
 }
 

@@ -1,22 +1,146 @@
-/* System fonts only: no web fonts are loaded (Requirement 19.1). */
+/* TapeRescue theme: "Frankenstein's lab for dead cassettes".
+   System fonts only: no web fonts are loaded (Requirement 19.1). Every effect
+   is CSS or inline SVG, so nothing is blocked by `default-src 'self'`. */
 :root {
+  --bg: #0e0a13; /* midnight, a touch of violet */
+  --surface: #181220;
+  --surface-2: #211a2b;
+  --line: #3b3048;
+  --text: #ece6f2;
+  --muted: #b3a6c2;
+  --oxide: #2b1b14; /* magnetic tape */
+  --oxide-hi: #3d271c;
+  --phosphor: #58f29a; /* BBC Micro monitor green */
+  --ecto: #7df9ff; /* ectoplasm */
+  --pumpkin: #ff9a3c;
+  --blood: #ff8a80; /* error text: readable on --bg */
+  --thread: #e9e2ff; /* surgical thread */
+  --lavender: #c3b1ff;
+  --mono: ui-monospace, "DejaVu Sans Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   line-height: 1.5;
-  color: #1a1a1a;
-  background: #fafafa;
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(88, 242, 154, 0.08), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(125, 249, 255, 0.06), transparent 70%),
+    var(--bg);
+}
+
+/* CRT scanlines and vignette over the whole page. Decorative only. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, 0.16) 2px 3px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* Low fog that drifts along the bottom of the window. */
+body::before {
+  content: "";
+  position: fixed;
+  left: -20%;
+  right: -20%;
+  bottom: -6rem;
+  height: 16rem;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 30% 45% at 20% 60%, rgba(195, 177, 255, 0.07), transparent 70%),
+    radial-gradient(ellipse 35% 50% at 60% 70%, rgba(125, 249, 255, 0.06), transparent 70%),
+    radial-gradient(ellipse 25% 40% at 90% 55%, rgba(195, 177, 255, 0.05), transparent 70%);
+  animation: fog-drift 38s ease-in-out infinite alternate;
+}
+
+@keyframes fog-drift {
+  from {
+    transform: translateX(-4%);
+  }
+  to {
+    transform: translateX(4%);
+  }
 }
 
 .app {
+  position: relative;
+  z-index: 1;
   max-width: 72rem;
   margin: 0 auto;
   padding: 1.5rem;
 }
 
+h2 {
+  font-family: var(--mono);
+  letter-spacing: 0.02em;
+}
+
+a {
+  color: var(--lavender);
+}
+a:hover {
+  color: var(--ecto);
+}
+a:focus-visible {
+  outline: 3px solid var(--pumpkin);
+  outline-offset: 2px;
+}
+
 code,
-pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+pre,
+kbd {
+  font-family: var(--mono);
+}
+kbd {
+  padding: 0 0.35rem;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--phosphor);
+}
+
+[role="status"] {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--muted);
+}
+
+.site-footer {
+  position: relative;
+  z-index: 1;
+  max-width: 72rem;
+  margin: 2rem auto 0;
+  padding: 1rem 1.5rem 2rem;
+  border-top: 1px dashed var(--line);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* Motion and contrast preferences switch the effects off. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+@media (prefers-contrast: more) {
+  body::after,
+  body::before {
+    display: none;
+  }
 }

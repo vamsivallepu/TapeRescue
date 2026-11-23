@@ -96,6 +96,7 @@ export function DownloadBar({
         </button>
         <button
           type="button"
+          className="btn-primary"
           ref={tapeButton}
           onClick={onTapeClick}
           disabled={!permitted || busy === "tape"}

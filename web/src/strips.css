@@ -1,59 +1,251 @@
-/* Capture and merged strips. Cell colours are set per status from status.ts. */
+/* Capture and merged strips, drawn as lengths of magnetic tape.
+   Cell fill and text colours still come from status.ts (the design table);
+   the overlays below only darken or edge the cell, so text contrast holds.
+   Decorative pseudo-elements use empty `content`, so they add no text. */
 .strip {
-  margin: 1rem 0;
+  margin: 1.1rem 0;
 }
 .strip-title {
-  font-size: 1rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.45rem;
+  color: var(--text);
+}
+/* A little reel in front of each strip name. */
+.strip-title::before {
+  content: "";
+  flex: none;
+  align-self: center;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--bg) 0 22%, #d9d2e3 23% 38%, var(--oxide-hi) 39% 100%);
+  box-shadow: 0 0 0 1px #5a3a28;
 }
 .strip-subtitle {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--mono);
   font-weight: 400;
-  font-size: 0.85rem;
-  color: #4a4a4a;
-  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
+
+/* The tape: oxide with lighter edges and faint wow-and-flutter streaks. */
 .strip-cells {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: 0.35rem;
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0.5rem 0.6rem;
+  border-radius: 3px;
+  background:
+    linear-gradient(to bottom, #6b4630 0 2px, transparent 2px calc(100% - 2px), #6b4630 calc(100% - 2px)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 7px),
+    linear-gradient(to bottom, var(--oxide-hi), var(--oxide) 40%, var(--oxide));
+  box-shadow:
+    inset 0 0 18px rgba(0, 0, 0, 0.55),
+    0 4px 14px rgba(0, 0, 0, 0.35);
 }
+
 .strip-cell {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-width: 6.5rem;
-  min-height: 3.25rem;
-  padding: 0.25rem 0.5rem;
-  border: 2px solid transparent;
-  border-radius: 4px;
+  min-height: 3.4rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 3px;
   font: inherit;
-  font-size: 0.875rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
   line-height: 1.2;
   cursor: pointer;
+  box-shadow: inset 0 -12px 16px rgba(0, 0, 0, 0.22);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.strip-cell:hover {
+  transform: translateY(-2px);
+}
+.strip-cell-no,
+.strip-cell-label {
+  position: relative;
+  z-index: 1;
 }
 .strip-cell-no {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.05rem;
 }
 .strip-cell-label {
   white-space: nowrap;
 }
-/* Selection: a dark ring outside the cell, plus aria-pressed for assistive tech. */
+.strip-cell::before,
+.strip-cell::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Intact: a healthy phosphor sheen along the top edge. */
+.strip-cell[data-status="Intact"]::before {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: rgba(88, 242, 154, 0.75);
+  box-shadow: 0 0 8px rgba(88, 242, 154, 0.9);
+}
+
+/* CRC failed / Header failed: the tape is cracked and its bottom edge torn. */
+/* The crack runs down from the top-left corner and stops above the label. */
+.strip-cell[data-status="CRC failed"]::before,
+.strip-cell[data-status="Header failed"]::before {
+  left: 7%;
+  top: 0;
+  width: 20%;
+  height: 48%;
+  background:
+    linear-gradient(118deg, transparent 44%, rgba(0, 0, 0, 0.55) 45%, rgba(0, 0, 0, 0.55) 52%, transparent 53%);
+}
+.strip-cell[data-status="CRC failed"]::after,
+.strip-cell[data-status="Header failed"]::after {
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 7px;
+  background:
+    linear-gradient(135deg, var(--oxide) 35%, transparent 36%) 0 0 / 9px 7px repeat-x,
+    linear-gradient(225deg, var(--oxide) 35%, transparent 36%) 0 0 / 9px 7px repeat-x;
+}
+
+/* Reconstructed: a stitched seam along the top and an ectoplasm glow. */
+.strip-cell[data-status="Reconstructed · CRC match"] {
+  border-color: rgba(125, 249, 255, 0.8);
+  animation: ectoplasm 2.8s ease-in-out infinite;
+}
+.strip-cell[data-status="Reconstructed · CRC match"]::before {
+  left: 10%;
+  right: 10%;
+  top: 4px;
+  height: 7px;
+  background:
+    linear-gradient(var(--thread), var(--thread)) center / 100% 1.5px no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 4px, var(--thread) 4px 5.5px, transparent 5.5px 9px);
+  opacity: 0.9;
+}
+.strip-cell[data-status="Reconstructed · CRC match"]::after {
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 120%, rgba(125, 249, 255, 0.22), transparent 70%);
+}
+@keyframes ectoplasm {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(125, 249, 255, 0.35),
+      0 0 10px rgba(125, 249, 255, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(125, 249, 255, 0.7),
+      0 0 22px rgba(125, 249, 255, 0.7);
+  }
+}
+
+/* Unresolved, CRC unreadable, Truncated: restless, flickering. */
+.strip-cell[data-status="Unresolved"]::before,
+.strip-cell[data-status="CRC unreadable"]::before,
+.strip-cell[data-status="Truncated"]::before {
+  inset: 0;
+  background: rgba(0, 0, 0, 0.12);
+  animation: restless 3.2s steps(1, end) infinite;
+}
+@keyframes restless {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  70% {
+    opacity: 0;
+  }
+  72% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0;
+  }
+  78% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0;
+  }
+}
+/* Truncated: the tape simply ends partway along the cell. */
+.strip-cell[data-status="Truncated"]::after {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 18%;
+  background: repeating-linear-gradient(180deg, var(--oxide) 0 4px, transparent 4px 8px);
+  opacity: 0.85;
+}
+
+/* Conflict: two spirits in one block; it shudders when touched. */
+.strip-cell[data-status="Conflict"]:hover {
+  animation: possessed 0.35s linear 2;
+}
+@keyframes possessed {
+  25% {
+    transform: translate(-1px, -1px) rotate(-0.6deg);
+  }
+  50% {
+    transform: translate(1px, 0) rotate(0.6deg);
+  }
+  75% {
+    transform: translate(-1px, 1px);
+  }
+}
+
+/* Missing: an empty grave, outlined. */
+.strip-cell[data-status="Missing"]::before {
+  inset: 4px;
+  border: 1px dashed rgba(255, 255, 255, 0.55);
+  border-radius: 2px;
+}
+
+/* Selection: a pumpkin ring outside the cell, plus aria-pressed for assistive tech. */
 .strip-cell--selected {
-  border-color: #fafafa;
-  outline: 3px solid #1a1a1a;
-  outline-offset: 0;
+  outline: 3px solid var(--pumpkin);
+  outline-offset: 2px;
+  transform: translateY(-2px);
 }
 .strip-cell:focus-visible {
-  outline: 3px solid #1a1a1a;
+  outline: 3px solid var(--ecto);
   outline-offset: 2px;
 }
+
+/* The merged strip is the patient on the table: a brighter, glowing tape. */
+.strip--merged {
+  margin-top: 1.6rem;
+}
+.strip--merged .strip-title {
+  color: var(--ecto);
+}
+.strip--merged .strip-cells {
+  box-shadow:
+    inset 0 0 18px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(125, 249, 255, 0.3),
+    0 0 26px rgba(125, 249, 255, 0.12);
+}
 .strip--merged .strip-cell {
-  min-height: 3.75rem;
+  min-height: 3.9rem;
 }
