@@ -62,7 +62,7 @@ wait_for() {
     for ((i = 0; i < limit; i += 10)); do
         s="$(state)"
         [[ " $want " == *" $s "* ]] && { echo "$s"; return 0; }
-        echo "   state: $s" >&2
+        echo "   state: $s"
         sleep 10
     done
     die "service $SERVICE did not reach [$want] within ${limit}s (last: $s)"
